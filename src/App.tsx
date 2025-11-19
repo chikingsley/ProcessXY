@@ -1,37 +1,44 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { APITester } from "./APITester";
+import { useState, useCallback } from "react";
+import { ChatInterface } from "./components/ChatInterface";
+import { ProcessMap } from "./components/ProcessMap";
+import { useNodesState, useEdgesState, addEdge, type Connection, type Edge, type Node } from "@xyflow/react";
 import "./index.css";
 
-import logo from "./logo.svg";
-import reactLogo from "./react.svg";
+const initialNodes: Node[] = [
+  { id: '1', position: { x: 250, y: 0 }, data: { label: 'Start Process' } },
+];
+const initialEdges: Edge[] = [];
 
 export function App() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const onConnect = useCallback(
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges],
+  );
+
   return (
-    <div className="container mx-auto p-8 text-center relative z-10">
-      <div className="flex justify-center items-center gap-8 mb-8">
-        <img
-          src={logo}
-          alt="Bun Logo"
-          className="h-36 p-6 transition-all duration-300 hover:drop-shadow-[0_0_2em_#646cffaa] scale-120"
-        />
-        <img
-          src={reactLogo}
-          alt="React Logo"
-          className="h-36 p-6 transition-all duration-300 hover:drop-shadow-[0_0_2em_#61dafbaa] [animation:spin_20s_linear_infinite]"
+    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
+      <div className="w-[30%] min-w-[300px] max-w-[400px] h-full border-r border-border">
+        <ChatInterface
+          currentNodes={nodes}
+          currentEdges={edges}
+          onGraphUpdate={(newNodes, newEdges) => {
+            setNodes(newNodes);
+            setEdges(newEdges);
+          }}
         />
       </div>
-      <Card>
-        <CardHeader className="gap-4">
-          <CardTitle className="text-3xl font-bold">Bun + React</CardTitle>
-          <CardDescription>
-            Edit <code className="rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono">src/App.tsx</code> and save to
-            test HMR
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <APITester />
-        </CardContent>
-      </Card>
+      <div className="flex-1 h-full">
+        <ProcessMap
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+        />
+      </div>
     </div>
   );
 }
