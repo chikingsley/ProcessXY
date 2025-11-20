@@ -127,17 +127,21 @@ jobs:
             });
 
       - name: Notify webhook (if configured)
-        if: ${{ secrets.CLAUDE_WEBHOOK_URL != '' }}
+        continue-on-error: true
         run: |
-          curl -X POST "${{ secrets.CLAUDE_WEBHOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "event": "auto-fix-requested",
-              "repository": "${{ github.repository }}",
-              "issue_number": ${{ inputs.issue_number }},
-              "branch": "${{ steps.branch.outputs.name }}",
-              "issue_title": "${{ steps.issue.outputs.title }}"
-            }'
+          if [ -n "${{ secrets.CLAUDE_WEBHOOK_URL }}" ]; then
+            curl -X POST "${{ secrets.CLAUDE_WEBHOOK_URL }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "event": "auto-fix-requested",
+                "repository": "${{ github.repository }}",
+                "issue_number": ${{ inputs.issue_number }},
+                "branch": "${{ steps.branch.outputs.name }}",
+                "issue_title": "${{ steps.issue.outputs.title }}"
+              }'
+          else
+            echo "CLAUDE_WEBHOOK_URL not configured, skipping webhook notification"
+          fi
 
       - name: Summary
         run: |

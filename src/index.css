@@ -8,8 +8,21 @@
   html, body {
     @apply h-full w-full m-0 p-0 overflow-hidden bg-background text-foreground;
   }
-  
+
   #root {
     @apply h-full w-full;
+  }
+
+  /* Hide React Flow's default node background */
+  .react-flow__node {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Remove React Flow's default selection styling (we use custom green ring) */
+  .react-flow__node.selected {
+    box-shadow: none !important;
   }
 }
