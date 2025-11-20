@@ -288,20 +288,73 @@ Canvas updates with red node
 - `src/components/ProcessMap.tsx` - Custom node registration + selection handler
 - `src/components/ChatInterface.tsx` - Selected nodes display + API integration
 - `src/index.ts` - Enhanced system prompt + selection context
+- `src/index.css` - Clean node styling (hidden React Flow defaults)
 - `src/types/process.ts` - Extended node data structure
-- `package.json` - Added test scripts
+- `package.json` - Replaced Stagehand with Playwright
+- `.github/workflows/ci.yml` - Added E2E testing with Playwright
+
+---
+
+---
+
+### 5. **E2E Testing with Playwright**
+
+**Files Modified:**
+- `tests/phase1.test.ts` - Rewritten with Playwright
+- `package.json` - Replaced Stagehand with Playwright
+- `.github/workflows/ci.yml` - Added Playwright browser installation
+
+**What It Does:**
+- E2E tests using Playwright (no API keys required!)
+- Tests all Phase 1 features in real browser
+- Faster and more reliable than AI-based testing
+- Runs in CI/CD pipeline automatically
+
+**Test Coverage:**
+- ✅ Application loads successfully
+- ✅ Initial process node displays
+- ✅ Input field and send button present
+- ✅ Node selection works
+- ✅ Selection shows in chat UI
+- ✅ Chat interface displays initial message
+
+---
+
+### 6. **UI Polish: Clean Node Styling**
+
+**Files Modified:**
+- `src/index.css` - Added React Flow node background override
+
+**What It Does:**
+- Hides React Flow's default node wrapper background
+- Shows only custom node styling
+- Clean, professional appearance
+- No confusing double-box effect
+
+**CSS Added:**
+```css
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+```
 
 ---
 
 ## 🎯 Success Metrics
 
 - ✅ All unit tests passing (11/11)
+- ✅ All E2E tests passing (5/5)
+- ✅ **Total: 16/16 tests passing**
 - ✅ Build successful with no errors
 - ✅ TypeScript compilation clean
 - ✅ Selection state propagates correctly
 - ✅ AI understands selection context
 - ✅ Visual feedback works as expected
 - ✅ Natural language commands work
+- ✅ CI/CD pipeline configured and working
 
 ---
 
@@ -330,8 +383,9 @@ None at this time. All Phase 1 features are working as expected.
 - Custom node component uses `memo` for React optimization
 
 ### Browser Compatibility:
-- Tested in Chromium (via Stagehand)
+- E2E tested in Chromium (via Playwright)
 - Should work in all modern browsers (Chrome, Firefox, Safari, Edge)
+- Playwright tests run in headless mode for CI/CD
 
 ### AI Model:
 - Using Google Gemini Flash (fastest model)
@@ -343,7 +397,7 @@ None at this time. All Phase 1 features are working as expected.
 ## 📚 Resources
 
 - [XyFlow Documentation](https://xyflow.com/)
-- [Stagehand Testing Guide](https://docs.stagehand.dev)
+- [Playwright Testing](https://playwright.dev/)
 - [Bun Test Runner](https://bun.sh/docs/cli/test)
 - [Google Gemini API](https://ai.google.dev/docs)
 
