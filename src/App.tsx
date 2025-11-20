@@ -12,11 +12,16 @@ const initialEdges: Edge[] = [];
 export function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
   );
+
+  const handleSelectionChange = useCallback((params: { nodes: Node[]; edges: Edge[] }) => {
+    setSelectedNodeIds(params.nodes.map(node => node.id));
+  }, []);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
@@ -24,6 +29,7 @@ export function App() {
         <ChatInterface
           currentNodes={nodes}
           currentEdges={edges}
+          selectedNodeIds={selectedNodeIds}
           onGraphUpdate={(newNodes, newEdges) => {
             setNodes(newNodes);
             setEdges(newEdges);
@@ -37,6 +43,7 @@ export function App() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onSelectionChange={handleSelectionChange}
         />
       </div>
     </div>
