@@ -11,10 +11,9 @@ describe("Phase 1: Multi-Node Selection & AI Awareness", () => {
         // Initialize Stagehand in local mode (no Browserbase required for dev)
         stagehand = new Stagehand({
             env: "LOCAL",
-            headless: false, // Set to true for CI/CD
         });
         await stagehand.init();
-        page = stagehand.page;
+        page = stagehand.context.pages()[0];
     });
 
     afterAll(async () => {

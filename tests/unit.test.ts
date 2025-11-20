@@ -131,8 +131,8 @@ describe("Node Selection Logic", () => {
         const selectedNodes = allNodes.filter((n) => selectedNodeIds.includes(n.id));
 
         expect(selectedNodes.length).toBe(2);
-        expect(selectedNodes[0].id).toBe("1");
-        expect(selectedNodes[1].id).toBe("3");
+        expect(selectedNodes[0]?.id).toBe("1");
+        expect(selectedNodes[1]?.id).toBe("3");
     });
 
     test("should extract labels from selected nodes", () => {

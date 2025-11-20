@@ -1,0 +1,149 @@
+name: Auto-Fix Failed Tests
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types:
+      - completed
+
+jobs:
+  create-issue-on-failure:
+    name: Create Issue for Failed Tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get workflow run details
+        id: workflow
+        run: |
+          echo "run_id=${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          echo "commit=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+
+      - name: Check if issue already exists
+        id: check_issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'automated-fix,ci-failure'
+            });
+
+            const existingIssue = issues.data.find(issue =>
+              issue.title.includes('CI/CD Pipeline Failed') &&
+              issue.body.includes('${{ steps.workflow.outputs.commit }}')
+            );
+
+            if (existingIssue) {
+              console.log('Issue already exists:', existingIssue.number);
+              core.setOutput('exists', 'true');
+              core.setOutput('issue_number', existingIssue.number);
+            } else {
+              core.setOutput('exists', 'false');
+            }
+
+      - name: Create GitHub Issue for Failed Tests
+        if: steps.check_issue.outputs.exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🔴 CI/CD Pipeline Failed on ${{ steps.workflow.outputs.branch }}',
+              body: `## Test Failure Report
+
+            The CI/CD pipeline has failed on branch \`${{ steps.workflow.outputs.branch }}\`.
+
+            **Details:**
+            - **Workflow Run**: [#${{ steps.workflow.outputs.run_id }}](${{ github.event.workflow_run.html_url }})
+            - **Commit**: \`${{ steps.workflow.outputs.commit }}\`
+            - **Branch**: \`${{ steps.workflow.outputs.branch }}\`
+            - **Triggered by**: @${{ github.event.workflow_run.actor.login }}
+
+            **Action Items:**
+            - [ ] Review the test failures in the [workflow run](${{ github.event.workflow_run.html_url }})
+            - [ ] Fix the failing tests
+            - [ ] Verify fixes locally with \`bun test\`
+            - [ ] Push fixes to trigger CI again
+
+            ---
+
+            ### 🤖 Auto-Fix with Claude Code
+
+            To automatically fix this issue with Claude Code:
+
+            1. **Option 1: Manual Trigger** (Recommended)
+               - Open this repo in Claude Code
+               - Reference this issue URL in chat
+               - Claude will analyze the failures and propose fixes
+
+            2. **Option 2: GitHub Integration** (If configured)
+               - Claude Code can be triggered automatically via webhooks
+               - See \`.github/CLAUDE_CODE_SETUP.md\` for configuration
+
+            ---
+
+            **Logs will be added as comments below.**`,
+              labels: ['automated-fix', 'ci-failure', 'bug', 'needs-investigation']
+            });
+
+            console.log('Created issue:', issue.data.number);
+            core.setOutput('issue_number', issue.data.number);
+
+      - name: Add workflow logs to issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ steps.check_issue.outputs.issue_number || steps.create-issue.outputs.issue_number }};
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `### 📋 Latest Failure Logs
+
+            **Workflow Run**: [View Full Logs](${{ github.event.workflow_run.html_url }})
+
+            **Steps to reproduce locally:**
+            \`\`\`bash
+            git checkout ${{ steps.workflow.outputs.branch }}
+            git pull origin ${{ steps.workflow.outputs.branch }}
+            bun install
+            bun run build
+            bun run test:unit
+            \`\`\`
+
+            **Common fixes:**
+            - Check for TypeScript errors: \`bunx tsc --noEmit\`
+            - Clear cache: \`rm -rf node_modules bun.lockb && bun install\`
+            - Rebuild: \`bun run build\`
+
+            ---
+            *Auto-generated on ${new Date().toISOString()}*`
+            });
+
+  notify-team:
+    name: Notify Team (Optional)
+    runs-on: ubuntu-latest
+    needs: create-issue-on-failure
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+    steps:
+      - name: Send notification
+        run: |
+          echo "🔔 Team notification would be sent here"
+          echo "You can integrate with:"
+          echo "  - Slack"
+          echo "  - Discord"
+          echo "  - Email"
+          echo "  - Claude Code webhook"
