@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X } from "lucide-react";
 import type { ProcessGraph } from "../types/process";
 import type { Node, Edge } from "@xyflow/react";
 
@@ -15,10 +15,11 @@ interface Message {
 interface ChatInterfaceProps {
     currentNodes: Node[];
     currentEdges: Edge[];
+    selectedNodeIds: string[];
     onGraphUpdate: (nodes: Node[], edges: Edge[]) => void;
 }
 
-export function ChatInterface({ currentNodes, currentEdges, onGraphUpdate }: ChatInterfaceProps) {
+export function ChatInterface({ currentNodes, currentEdges, selectedNodeIds, onGraphUpdate }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: "1",
@@ -59,6 +60,7 @@ export function ChatInterface({ currentNodes, currentEdges, onGraphUpdate }: Cha
                 body: JSON.stringify({
                     prompt: userMessage.content,
                     currentGraph,
+                    selectedNodeIds,
                 }),
             });
 
@@ -125,6 +127,25 @@ export function ChatInterface({ currentNodes, currentEdges, onGraphUpdate }: Cha
                     )}
                 </div>
                 <div className="p-4 border-t bg-background">
+                    {/* Selected Nodes Chips */}
+                    {selectedNodeIds.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                            {selectedNodeIds.map((nodeId) => {
+                                const node = currentNodes.find(n => n.id === nodeId);
+                                return node ? (
+                                    <div
+                                        key={nodeId}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium border border-green-300 dark:border-green-700"
+                                    >
+                                        <span>{node.data.label}</span>
+                                    </div>
+                                ) : null;
+                            })}
+                            <span className="text-xs text-muted-foreground self-center">
+                                {selectedNodeIds.length} selected
+                            </span>
+                        </div>
+                    )}
                     <form onSubmit={handleSendMessage} className="flex gap-2">
                         <Input
                             value={inputValue}

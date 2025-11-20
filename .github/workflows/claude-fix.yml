@@ -1,0 +1,154 @@
+name: Claude Code Auto-Fix
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'GitHub Issue Number to fix'
+        required: true
+        type: string
+      branch_name:
+        description: 'Branch name for fixes (leave empty for auto-generate)'
+        required: false
+        type: string
+
+jobs:
+  trigger-claude-fix:
+    name: Trigger Claude Code Fix
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get issue details
+        id: issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ inputs.issue_number }}
+            });
+
+            core.setOutput('title', issue.data.title);
+            core.setOutput('body', issue.data.body);
+            core.setOutput('labels', JSON.stringify(issue.data.labels.map(l => l.name)));
+
+      - name: Generate fix branch name
+        id: branch
+        run: |
+          BRANCH_NAME="${{ inputs.branch_name }}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="claude/auto-fix-issue-${{ inputs.issue_number }}-$(date +%s)"
+          fi
+          echo "name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create fix instructions
+        run: |
+          cat > .claude-instructions.md << 'EOF'
+          # Auto-Fix Instructions for Claude Code
+
+          ## Issue to Fix
+          **Issue #${{ inputs.issue_number }}**: ${{ steps.issue.outputs.title }}
+
+          ## Issue Description
+          ${{ steps.issue.outputs.body }}
+
+          ## Tasks
+          1. Analyze the CI/CD failure logs
+          2. Identify the root cause of test failures
+          3. Fix the failing tests or code
+          4. Run tests locally to verify: `bun test`
+          5. Commit the fixes with a descriptive message
+          6. Push to branch: `${{ steps.branch.outputs.name }}`
+          7. Create a pull request linking to issue #${{ inputs.issue_number }}
+
+          ## Success Criteria
+          - [ ] All unit tests pass (`bun run test:unit`)
+          - [ ] Build succeeds (`bun run build`)
+          - [ ] TypeScript compiles (`bunx tsc --noEmit`)
+          - [ ] Changes are minimal and focused on the issue
+          - [ ] Code follows existing patterns
+          - [ ] Tests are added if necessary
+
+          ## Commands to Run
+          ```bash
+          bun install
+          bun run build
+          bun run test:unit
+          bunx tsc --noEmit
+          ```
+
+          ## Branch Information
+          - **Target Branch**: ${{ steps.branch.outputs.name }}
+          - **Issue**: #${{ inputs.issue_number }}
+          - **Auto-generated**: Yes
+          EOF
+
+          cat .claude-instructions.md
+
+      - name: Comment on issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ inputs.issue_number }},
+              body: `## 🤖 Claude Code Auto-Fix Triggered
+
+            A Claude Code auto-fix workflow has been initiated.
+
+            **Branch**: \`${{ steps.branch.outputs.name }}\`
+
+            ### Next Steps:
+
+            1. **If you have Claude Code webhook configured**:
+               - Claude will automatically analyze and fix this issue
+               - Watch for a PR from branch \`${{ steps.branch.outputs.name }}\`
+
+            2. **Manual Claude Code invocation**:
+               \`\`\`bash
+               # Open Claude Code in this repository
+               # Then share this issue URL in the chat
+               # Claude will analyze and propose fixes
+               \`\`\`
+
+            3. **Check progress**:
+               - Monitor the [Actions tab](${{ github.server_url }}/${{ github.repository }}/actions)
+               - Watch for new commits on \`${{ steps.branch.outputs.name }}\`
+
+            ---
+            *Triggered by: @${{ github.actor }}*`
+            });
+
+      - name: Notify webhook (if configured)
+        if: ${{ secrets.CLAUDE_WEBHOOK_URL != '' }}
+        run: |
+          curl -X POST "${{ secrets.CLAUDE_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "event": "auto-fix-requested",
+              "repository": "${{ github.repository }}",
+              "issue_number": ${{ inputs.issue_number }},
+              "branch": "${{ steps.branch.outputs.name }}",
+              "issue_title": "${{ steps.issue.outputs.title }}"
+            }'
+
+      - name: Summary
+        run: |
+          echo "# 🤖 Claude Code Auto-Fix Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Issue**: #${{ inputs.issue_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`${{ steps.branch.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Open this repository in Claude Code" >> $GITHUB_STEP_SUMMARY
+          echo "2. Reference issue #${{ inputs.issue_number }} in chat" >> $GITHUB_STEP_SUMMARY
+          echo "3. Claude will analyze the failure and propose fixes" >> $GITHUB_STEP_SUMMARY
+          echo "4. Review and approve the fixes" >> $GITHUB_STEP_SUMMARY
+          echo "5. Claude will commit and create a PR" >> $GITHUB_STEP_SUMMARY
