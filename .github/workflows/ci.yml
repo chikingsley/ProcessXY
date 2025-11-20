@@ -30,10 +30,10 @@ jobs:
       - name: Run unit tests
         run: bun run test:unit
 
-      - name: Run E2E tests (if API key available)
-        if: ${{ secrets.GOOGLE_API_KEY != '' }}
-        env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium --with-deps
+
+      - name: Run E2E tests
         run: |
           # Start dev server in background
           bun run dev &
