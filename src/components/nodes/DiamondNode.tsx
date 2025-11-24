@@ -6,13 +6,28 @@ import type { ProcessNode } from "../../types/process";
  * Calculate bottom handle positions based on output count
  * Positions are distributed along the 25%-75% range of the width
  */
-function getBottomHandlePositions(count: number): number[] {
-	if (count === 1) return [50];
-	if (count === 2) return [33, 67];
-	if (count === 3) return [25, 50, 75];
-	if (count === 4) return [25, 41.7, 58.3, 75];
-	// For more than 4, evenly distribute between 25% and 75%
-	return [...Array(count)].map((_, i) => 25 + (50 / (count - 1)) * i);
+function getBottomHandlePoints(count: number): { left: number; top: number }[] {
+	// Distribute x positions across the bottom half of the diamond (from left vertex to right vertex)
+	const xPercents =
+		count === 1
+			? [50]
+			: count === 2
+				? [33, 67]
+				: count === 3
+					? [25, 50, 75]
+					: count === 4
+						? [25, 41.7, 58.3, 75]
+						: [...Array(count)].map((_, i) => 25 + (50 / (count - 1)) * i);
+
+	// Convert x percents into points on the lower edges of the diamond
+	// Diamond vertices: (20,80) -> (80,140) -> (140,80)
+	return xPercents.map((percent) => {
+		const x = 20 + ((140 - 20) * percent) / 100;
+		const isRightHalf = x >= 80;
+		const y = isRightHalf ? 220 - x : x + 60; // y=x+60 on left segment, y=220-x on right
+
+		return { left: x, top: y };
+	});
 }
 
 /**
@@ -23,7 +38,7 @@ export const DiamondNode = memo(
 	({ data, selected }: NodeProps<ProcessNode>) => {
 		// Default to 2 outputs for typical Yes/No decisions
 		const outputCount = data.outputCount ?? 2;
-		const bottomHandlePositions = getBottomHandlePositions(outputCount);
+		const bottomHandlePositions = getBottomHandlePoints(outputCount);
 		const getBorderColor = () => {
 			if (selected) return "#22c55e"; // green-500
 
@@ -73,8 +88,9 @@ export const DiamondNode = memo(
 					height="160"
 					className="absolute inset-0"
 					style={{ overflow: "visible" }}
+					role="img"
+					aria-label="Diamond decision node"
 				>
-					role="img" aria-label="Diamond decision node"
 					<title>Diamond decision node</title>
 					{/* Selection ring */}
 					{selected && (
@@ -129,7 +145,7 @@ export const DiamondNode = memo(
 				)}
 
 				{/* Output handles dynamically positioned along bottom edge */}
-				{bottomHandlePositions.map((xPercent, index) => {
+				{bottomHandlePositions.map(({ left, top }, index) => {
 					const handleId =
 						outputCount === 2
 							? index === 0
@@ -146,9 +162,9 @@ export const DiamondNode = memo(
 							className="!bg-muted-foreground"
 							style={{
 								position: "absolute",
-								left: `${xPercent}%`,
-								top: "110px",
-								transform: "translate(-50%, 0)",
+								left: `${left}px`,
+								top: `${top}px`,
+								transform: "translate(-50%, -50%)",
 							}}
 						/>
 					);
