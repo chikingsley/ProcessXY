@@ -7,33 +7,30 @@ import type { Edge, Node } from "@xyflow/react";
 export const TEST_NODES: Node[] = [
 	{
 		id: "1",
-		type: "oval", // Start node - oval shape
+		type: "oval",
 		position: { x: 250, y: 0 },
 		data: {
 			label: "Start",
-			description: "Customer submits application",
-			status: "complete",
+			status: "normal",
 		},
 	},
 	{
 		id: "2",
-		type: "default", // Regular process step - rectangle
+		type: "default",
 		position: { x: 250, y: 200 },
 		data: {
 			label: "Review Application",
-			description: "Initial review",
 			status: "normal",
 		},
 	},
 	{
 		id: "3",
-		type: "diamond", // Decision point - diamond shape with 2 outputs
+		type: "diamond",
 		position: { x: 200, y: 480 },
 		data: {
 			label: "Credit OK?",
-			description: "Yes/No decision",
 			status: "normal",
-			outputCount: 2, // Explicitly set 2 outputs for Yes/No
+			outputCount: 2,
 		},
 	},
 	{
@@ -42,9 +39,7 @@ export const TEST_NODES: Node[] = [
 		position: { x: 50, y: 760 },
 		data: {
 			label: "Request Documents",
-			description: "Additional verification needed",
 			status: "issue",
-			color: "#fef3c7",
 		},
 	},
 	{
@@ -53,9 +48,7 @@ export const TEST_NODES: Node[] = [
 		position: { x: 400, y: 760 },
 		data: {
 			label: "Approve Application",
-			description: "Credit check passed",
-			status: "complete",
-			color: "#dcfce7",
+			status: "normal",
 		},
 	},
 	{
@@ -64,18 +57,16 @@ export const TEST_NODES: Node[] = [
 		position: { x: 250, y: 1040 },
 		data: {
 			label: "Send Notification",
-			description: "Notify customer",
 			status: "bottleneck",
 		},
 	},
 	{
 		id: "7",
-		type: "oval", // End node - oval shape
+		type: "oval",
 		position: { x: 250, y: 1320 },
 		data: {
-			label: "Complete",
-			description: "Process finished",
-			status: "complete",
+			label: "End",
+			status: "normal",
 		},
 	},
 	// Additional examples showcasing diamond nodes with different output counts
@@ -85,7 +76,6 @@ export const TEST_NODES: Node[] = [
 		position: { x: 700, y: 200 },
 		data: {
 			label: "Priority?",
-			description: "Low/Medium/High",
 			status: "normal",
 			outputCount: 3,
 		},
@@ -96,7 +86,6 @@ export const TEST_NODES: Node[] = [
 		position: { x: 550, y: 480 },
 		data: {
 			label: "Low Priority",
-			description: "Queue for later",
 			status: "normal",
 		},
 	},
@@ -106,7 +95,6 @@ export const TEST_NODES: Node[] = [
 		position: { x: 700, y: 480 },
 		data: {
 			label: "Medium Priority",
-			description: "Standard processing",
 			status: "normal",
 		},
 	},
@@ -116,7 +104,6 @@ export const TEST_NODES: Node[] = [
 		position: { x: 850, y: 480 },
 		data: {
 			label: "High Priority",
-			description: "Expedite",
 			status: "issue",
 		},
 	},
@@ -126,7 +113,6 @@ export const TEST_NODES: Node[] = [
 		position: { x: 700, y: 760 },
 		data: {
 			label: "Risk Level?",
-			description: "Minimal/Low/Medium/High",
 			status: "normal",
 			outputCount: 4,
 		},
@@ -137,8 +123,7 @@ export const TEST_NODES: Node[] = [
 		position: { x: 500, y: 1040 },
 		data: {
 			label: "Minimal Risk",
-			description: "Auto-approve",
-			status: "complete",
+			status: "normal",
 		},
 	},
 	{
@@ -147,7 +132,6 @@ export const TEST_NODES: Node[] = [
 		position: { x: 650, y: 1040 },
 		data: {
 			label: "Low Risk",
-			description: "Quick review",
 			status: "normal",
 		},
 	},
@@ -157,7 +141,6 @@ export const TEST_NODES: Node[] = [
 		position: { x: 800, y: 1040 },
 		data: {
 			label: "Medium Risk",
-			description: "Full review",
 			status: "issue",
 		},
 	},
@@ -167,7 +150,6 @@ export const TEST_NODES: Node[] = [
 		position: { x: 950, y: 1040 },
 		data: {
 			label: "High Risk",
-			description: "Escalate",
 			status: "bottleneck",
 		},
 	},
@@ -308,17 +290,17 @@ export const TEST_EDGES: Edge[] = [
 		target: "9",
 		type: "bezier",
 		label: "Low",
-		labelStyle: { fill: "#3b82f6", fontWeight: 600 },
+		labelStyle: { fill: "#64748b", fontWeight: 600 },
 		labelShowBg: true,
 		style: {
 			strokeWidth: 2,
-			stroke: "#3b82f6",
+			stroke: "#64748b",
 		},
 		markerEnd: {
 			type: "arrowclosed",
 			width: 25,
 			height: 25,
-			color: "#3b82f6",
+			color: "#64748b",
 		},
 	},
 	{
@@ -328,17 +310,17 @@ export const TEST_EDGES: Edge[] = [
 		target: "10",
 		type: "bezier",
 		label: "Medium",
-		labelStyle: { fill: "#8b5cf6", fontWeight: 600 },
+		labelStyle: { fill: "#64748b", fontWeight: 600 },
 		labelShowBg: true,
 		style: {
 			strokeWidth: 2,
-			stroke: "#8b5cf6",
+			stroke: "#64748b",
 		},
 		markerEnd: {
 			type: "arrowclosed",
 			width: 25,
 			height: 25,
-			color: "#8b5cf6",
+			color: "#64748b",
 		},
 	},
 	{
@@ -348,17 +330,17 @@ export const TEST_EDGES: Edge[] = [
 		target: "11",
 		type: "bezier",
 		label: "High",
-		labelStyle: { fill: "#f59e0b", fontWeight: 600 },
+		labelStyle: { fill: "#64748b", fontWeight: 600 },
 		labelShowBg: true,
 		style: {
 			strokeWidth: 2,
-			stroke: "#f59e0b",
+			stroke: "#64748b",
 		},
 		markerEnd: {
 			type: "arrowclosed",
 			width: 25,
 			height: 25,
-			color: "#f59e0b",
+			color: "#64748b",
 		},
 	},
 	// Edges for 4-output diamond (Risk Level)
@@ -369,17 +351,17 @@ export const TEST_EDGES: Edge[] = [
 		target: "13",
 		type: "bezier",
 		label: "Minimal",
-		labelStyle: { fill: "#22c55e", fontWeight: 600 },
+		labelStyle: { fill: "#64748b", fontWeight: 600 },
 		labelShowBg: true,
 		style: {
 			strokeWidth: 2,
-			stroke: "#22c55e",
+			stroke: "#64748b",
 		},
 		markerEnd: {
 			type: "arrowclosed",
 			width: 25,
 			height: 25,
-			color: "#22c55e",
+			color: "#64748b",
 		},
 	},
 	{
@@ -389,17 +371,17 @@ export const TEST_EDGES: Edge[] = [
 		target: "14",
 		type: "bezier",
 		label: "Low",
-		labelStyle: { fill: "#3b82f6", fontWeight: 600 },
+		labelStyle: { fill: "#64748b", fontWeight: 600 },
 		labelShowBg: true,
 		style: {
 			strokeWidth: 2,
-			stroke: "#3b82f6",
+			stroke: "#64748b",
 		},
 		markerEnd: {
 			type: "arrowclosed",
 			width: 25,
 			height: 25,
-			color: "#3b82f6",
+			color: "#64748b",
 		},
 	},
 	{
@@ -409,17 +391,17 @@ export const TEST_EDGES: Edge[] = [
 		target: "15",
 		type: "bezier",
 		label: "Medium",
-		labelStyle: { fill: "#f59e0b", fontWeight: 600 },
+		labelStyle: { fill: "#64748b", fontWeight: 600 },
 		labelShowBg: true,
 		style: {
 			strokeWidth: 2,
-			stroke: "#f59e0b",
+			stroke: "#64748b",
 		},
 		markerEnd: {
 			type: "arrowclosed",
 			width: 25,
 			height: 25,
-			color: "#f59e0b",
+			color: "#64748b",
 		},
 	},
 	{
@@ -429,17 +411,17 @@ export const TEST_EDGES: Edge[] = [
 		target: "16",
 		type: "bezier",
 		label: "High",
-		labelStyle: { fill: "#ef4444", fontWeight: 600 },
+		labelStyle: { fill: "#64748b", fontWeight: 600 },
 		labelShowBg: true,
 		style: {
 			strokeWidth: 2,
-			stroke: "#ef4444",
+			stroke: "#64748b",
 		},
 		markerEnd: {
 			type: "arrowclosed",
 			width: 25,
 			height: 25,
-			color: "#ef4444",
+			color: "#64748b",
 		},
 	},
 ];

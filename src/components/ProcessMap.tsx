@@ -1,6 +1,7 @@
 import {
 	Background,
 	BackgroundVariant,
+	BezierEdge,
 	Controls,
 	type Edge,
 	MiniMap,
@@ -31,6 +32,7 @@ const nodeTypes = {
 };
 
 const edgeTypes = {
+	bezier: BezierEdge, // Alias for compatibility - React Flow v12 doesn't have "bezier" by default
 	floating: FloatingEdge,
 	selfConnecting: SelfConnectingEdge,
 };
