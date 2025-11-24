@@ -13,17 +13,20 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 const model = genAI.getGenerativeModel({
   model: "gemini-flash-latest",
-  generationConfig: {
-    responseMimeType: "application/json",
-  },
+  // No JSON constraint - we'll use NDJSON for streaming
 });
 
 const SYSTEM_PROMPT = `
 You are an expert process mapping assistant. Your goal is to generate or modify a process map based on the user's description.
-You must return a JSON object containing 'nodes' and 'edges' that represents the process flow.
 
-OUTPUT FORMAT:
-Return ONLY valid JSON with 'nodes' and 'edges' arrays. No additional text or explanation.
+OUTPUT FORMAT (NDJSON - Newline Delimited JSON):
+Output each node as a separate JSON object on its own line, followed by edges.
+Format:
+{"type":"node","data":{...node object...}}
+{"type":"node","data":{...node object...}}
+{"type":"edges","data":[...all edges...]}
+
+CRITICAL: Each line must be valid JSON. No additional text or explanation.
 
 NODE STRUCTURE:
 {
@@ -42,8 +45,24 @@ EDGE STRUCTURE:
 {
   "id": "unique-string-id",
   "source": "source-node-id",
-  "target": "target-node-id"
+  "target": "target-node-id",
+  "type": "smoothstep",
+  "markerEnd": {
+    "type": "ArrowClosed"
+  },
+  "label": "optional-label (e.g., 'Yes', 'No' for decisions)",
+  "labelStyle": { "fill": "#color", "fontWeight": 600 } (optional),
+  "labelShowBg": true (optional),
+  "animated": false (optional)
 }
+
+EDGE RULES:
+1. Always include "type": "smoothstep" for professional routing
+2. Always include "markerEnd": {"type": "ArrowClosed"} for directional arrows
+3. For decision nodes, add labels like "Yes" or "No":
+   - "Yes" branches: "label": "Yes", "labelStyle": {"fill": "#22c55e", "fontWeight": 600}
+   - "No" branches: "label": "No", "labelStyle": {"fill": "#ef4444", "fontWeight": 600}
+4. Set "labelShowBg": true to make labels more readable
 
 LAYOUT RULES:
 1. Start from top (y=0) and flow downwards
@@ -135,7 +154,7 @@ const server = serve({
               },
               {
                 role: "model",
-                parts: [{ text: "I understand. I am ready to generate process maps in JSON format with full support for node metadata and selection context." }],
+                parts: [{ text: "I understand. I will output nodes and edges in NDJSON format for streaming." }],
               },
             ],
           });
@@ -153,11 +172,109 @@ const server = serve({
             message += `\n\nCurrent Graph Context: ${JSON.stringify(currentGraph)}`;
           }
 
-          const result = await chatSession.sendMessage(message);
-          const responseText = result.response.text();
-          const graph = JSON.parse(responseText);
+          // Use streaming API
+          const result = await chatSession.sendMessageStream(message);
 
-          return Response.json(graph);
+          // Create a readable stream for SSE (Server-Sent Events)
+          const stream = new ReadableStream({
+            async start(controller) {
+              const encoder = new TextEncoder();
+
+              try {
+                let currentObject = '';
+                let braceDepth = 0;
+                let bracketDepth = 0;
+                let inString = false;
+                let escapeNext = false;
+
+                for await (const chunk of result.stream) {
+                  const chunkText = chunk.text();
+
+                  // Process only new characters from this chunk
+                  for (let i = 0; i < chunkText.length; i++) {
+                    const char = chunkText[i];
+                    currentObject += char;
+
+                    // Track string boundaries (ignore braces inside strings)
+                    if (char === '"' && !escapeNext) {
+                      inString = !inString;
+                    }
+                    escapeNext = char === '\\' && !escapeNext;
+
+                    if (!inString) {
+                      if (char === '{') braceDepth++;
+                      if (char === '}') braceDepth--;
+                      if (char === '[') bracketDepth++;
+                      if (char === ']') bracketDepth--;
+
+                      // Complete JSON object detected
+                      if (braceDepth === 0 && bracketDepth === 0 && currentObject.trim()) {
+                        try {
+                          const trimmed = currentObject.trim();
+                          if (trimmed.startsWith('{')) {
+                            // Validate and send
+                            const parsed = JSON.parse(trimmed);
+                            controller.enqueue(encoder.encode(`data: ${trimmed}\n\n`));
+
+                            // Better logging for edges
+                            if (parsed.type === 'edges' && parsed.data?.length > 0) {
+                              console.log('✅ Edges object:', JSON.stringify(parsed.data[0], null, 2));
+                            } else {
+                              console.log('✅ Parsed JSON object:', trimmed.substring(0, 50) + '...');
+                            }
+                            // Reset for next object
+                            currentObject = '';
+                            braceDepth = 0;
+                            bracketDepth = 0;
+                            inString = false;
+                            escapeNext = false;
+                          }
+                        } catch (e) {
+                          console.warn('⚠️  Invalid JSON object:', currentObject.substring(0, 100));
+                          // Reset on error
+                          currentObject = '';
+                          braceDepth = 0;
+                          bracketDepth = 0;
+                          inString = false;
+                          escapeNext = false;
+                        }
+                      }
+                    }
+                  }
+                }
+
+                // Process any remaining buffer
+                if (currentObject.trim()) {
+                  try {
+                    const trimmed = currentObject.trim();
+                    if (trimmed.startsWith('{')) {
+                      JSON.parse(trimmed);
+                      controller.enqueue(encoder.encode(`data: ${trimmed}\n\n`));
+                      console.log('✅ Final JSON object:', trimmed.substring(0, 50) + '...');
+                    }
+                  } catch (e) {
+                    console.warn('⚠️  Invalid JSON in final buffer:', currentObject.substring(0, 100));
+                  }
+                }
+
+                // Send completion event
+                controller.enqueue(encoder.encode('data: {"type":"complete"}\n\n'));
+                controller.close();
+              } catch (error) {
+                console.error('Streaming error:', error);
+                controller.enqueue(encoder.encode(`data: {"type":"error","message":"${error}"}\n\n`));
+                controller.close();
+              }
+            },
+          });
+
+          return new Response(stream, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          });
         } catch (error) {
           console.error("Error generating process map:", error);
           return Response.json(

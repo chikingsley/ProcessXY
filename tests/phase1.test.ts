@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
-import { chromium, Browser, Page } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 
 describe("Phase 1: Multi-Node Selection & AI Awareness", () => {
     let browser: Browser;
