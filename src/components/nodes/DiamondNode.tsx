@@ -1,6 +1,6 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { memo } from "react";
-import type { ProcessNode } from "../types/process";
+import type { ProcessNode } from "../../types/process";
 
 /**
  * Calculate bottom handle positions based on output count

@@ -45,54 +45,91 @@ export function SelfConnectingEdge(props: EdgeProps) {
 		const isBackward = targetY < sourceY;
 
 		if (isBackward) {
-			// Create a looping path that goes around the side
-			const midY = (sourceY + targetY) / 2;
-			const offsetX = -100; // How far to the side the loop extends
+			// Smart routing: Detect which side to use based on sourceHandleId
+			// If edge came from left branch of decision, route through left side
+			// If edge came from right branch of decision, route through right side
+			const useLeftSide = props.sourceHandleId === "left";
+			const useRightSide = props.sourceHandleId === "right";
 
-			const edgePath = `
-        M ${sourceX} ${sourceY}
-        C ${sourceX + offsetX} ${sourceY},
-          ${targetX + offsetX} ${targetY},
-          ${targetX} ${targetY}
-      `;
+			if (useLeftSide || useRightSide) {
+				// Calculate handle positions based on routing side
+				const sourceNodeWidth = sourceNode.measured?.width ?? 160;
+				const targetNodeWidth = targetNode.measured?.width ?? 160;
 
-			return (
-				<>
-					<path
-						id={id}
-						className={`react-flow__edge-path ${animated ? "animated" : ""}`}
-						d={edgePath}
-						markerEnd={markerEnd}
-						markerStart={markerStart}
-						style={style}
-					/>
-					{label && (
-						<g>
-							{labelShowBg && (
-								<rect
-									x={sourceX + offsetX / 2 - 20}
-									y={midY - 10}
-									width={40}
-									height={20}
-									rx={4}
-									fill="#ffffff"
-									className="react-flow__edge-label-bg"
-								/>
-							)}
-							<text
-								x={sourceX + offsetX / 2}
-								y={midY}
-								className="react-flow__edge-label"
-								style={labelStyle}
-								textAnchor="middle"
-								dominantBaseline="middle"
-							>
-								{label}
-							</text>
-						</g>
-					)}
-				</>
-			);
+				const sourceLeft = sourceNode.internals.positionAbsolute.x;
+				const sourceRight =
+					sourceNode.internals.positionAbsolute.x + sourceNodeWidth;
+				const sourceMidY =
+					sourceNode.internals.positionAbsolute.y +
+					(sourceNode.measured?.height ?? 0) / 2;
+
+				const targetLeft = targetNode.internals.positionAbsolute.x;
+				const targetRight =
+					targetNode.internals.positionAbsolute.x + targetNodeWidth;
+				const targetMidY =
+					targetNode.internals.positionAbsolute.y +
+					(targetNode.measured?.height ?? 0) / 2;
+
+				// For left routing: negative offset, for right routing: positive offset
+				const offsetX = useLeftSide ? -80 : 80;
+				const controlOffset = 60; // Control point offset for bezier curve
+
+				// Determine start and end points based on routing side
+				const startX = useLeftSide ? sourceLeft : sourceRight;
+				const endX = useLeftSide ? targetLeft : targetRight;
+
+				// Create a smooth bezier curve that routes around the specified side
+				const edgePath = `
+          M ${startX} ${sourceMidY}
+          C ${startX + offsetX} ${sourceMidY},
+            ${startX + offsetX} ${sourceMidY - controlOffset},
+            ${startX + offsetX} ${(sourceMidY + targetMidY) / 2}
+          C ${startX + offsetX} ${targetMidY + controlOffset},
+            ${endX + offsetX} ${targetMidY},
+            ${endX} ${targetMidY}
+        `;
+
+				const labelX = startX + offsetX;
+				const labelY = (sourceMidY + targetMidY) / 2;
+
+				return (
+					<>
+						<path
+							id={id}
+							className={`react-flow__edge-path ${animated ? "animated" : ""}`}
+							d={edgePath}
+							markerEnd={markerEnd}
+							markerStart={markerStart}
+							style={style}
+						/>
+						{label && (
+							<g>
+								{labelShowBg && (
+									<rect
+										x={labelX - 20}
+										y={labelY - 10}
+										width={40}
+										height={20}
+										rx={4}
+										fill="#ffffff"
+										className="react-flow__edge-label-bg"
+									/>
+								)}
+								<text
+									x={labelX}
+									y={labelY}
+									className="react-flow__edge-label"
+									style={labelStyle}
+									textAnchor="middle"
+									dominantBaseline="middle"
+								>
+									{label}
+								</text>
+							</g>
+						)}
+					</>
+				);
+			}
 		}
 
 		return <BezierEdge {...props} />;

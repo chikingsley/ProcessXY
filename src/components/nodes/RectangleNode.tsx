@@ -1,9 +1,9 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { memo } from "react";
-import type { ProcessNode } from "../types/process";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import type { ProcessNode } from "../../types/process";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
-export const CustomNode = memo(({ data, selected }: NodeProps<ProcessNode>) => {
+export const RectangleNode = memo(({ data, selected }: NodeProps<ProcessNode>) => {
 	// Determine node styling based on status and selection
 	const getNodeClasses = () => {
 		const baseClasses =
@@ -81,7 +81,11 @@ export const CustomNode = memo(({ data, selected }: NodeProps<ProcessNode>) => {
 
 	const nodeContent = (
 		<div className="relative">
+			{/* Target handles */}
 			<Handle type="target" position={Position.Top} className="!bg-gray-400" />
+			<Handle type="target" position={Position.Left} id="left" className="!bg-gray-400" />
+			<Handle type="target" position={Position.Right} id="right" className="!bg-gray-400" />
+
 			<div
 				className={getNodeClasses()}
 				style={data.color ? { borderColor: data.color } : {}}
@@ -94,11 +98,11 @@ export const CustomNode = memo(({ data, selected }: NodeProps<ProcessNode>) => {
 				)}
 			</div>
 			{getStatusIndicator()}
-			<Handle
-				type="source"
-				position={Position.Bottom}
-				className="!bg-gray-400"
-			/>
+
+			{/* Source handles */}
+			<Handle type="source" position={Position.Bottom} className="!bg-gray-400" />
+			<Handle type="source" position={Position.Left} id="left" className="!bg-gray-400" />
+			<Handle type="source" position={Position.Right} id="right" className="!bg-gray-400" />
 		</div>
 	);
 
@@ -112,4 +116,4 @@ export const CustomNode = memo(({ data, selected }: NodeProps<ProcessNode>) => {
 	);
 });
 
-CustomNode.displayName = "CustomNode";
+RectangleNode.displayName = "RectangleNode";

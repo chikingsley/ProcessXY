@@ -17,15 +17,15 @@ import { useCallback, useMemo, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import type { NodeStatus, ProcessNode } from "../types/process";
 import { ContextMenu } from "./ContextMenu";
-import { CustomNode } from "./CustomNode";
-import { DiamondNode } from "./DiamondNode";
 import { FloatingEdge } from "./edges/FloatingEdge";
 import { SelfConnectingEdge } from "./edges/SelfConnectingEdge";
-import { OvalNode } from "./OvalNode";
+import { DiamondNode } from "./nodes/DiamondNode";
+import { OvalNode } from "./nodes/OvalNode";
+import { RectangleNode } from "./nodes/RectangleNode";
 import { TooltipProvider } from "./ui/tooltip";
 
 const nodeTypes = {
-	default: CustomNode,
+	default: RectangleNode,
 	oval: OvalNode,
 	diamond: DiamondNode,
 };
