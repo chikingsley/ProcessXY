@@ -1,124 +1,145 @@
 # ProcessXY Development Roadmap
 
-## Current Sprint: Phase 1 Completion
+## Current Sprint: Phase 4 - SQLite Persistence
 
-### Research Tasks (In Progress)
-- [x] Research all React Flow marker types (Arrow, ArrowClosed)
-- [x] Research marker sizing options (width, height, color, strokeWidth)
-- [x] Research official React Flow edge documentation
-- [x] Confirmed: MarkerType.ArrowClosed = "arrowclosed" (lowercase)
-- [x] Confirmed: Default arrow size ~12-15px, can go up to 30-40px
-- [ ] Create comprehensive test prompt for all features
-
-### Implementation Tasks
-- [x] Add arrow markers to edges
-- [x] Change edges to smoothstep type
-- [x] Add yes/no labels for decision branches
-- [x] Auto-fit viewport during streaming (Option A)
-- [x] Normalize marker types in code (ArrowClosed → arrowclosed)
-- [ ] **Make arrows bigger** (increase width/height from default to 20-25px)
-- [ ] **Implement diamond shape for decision nodes**
-- [ ] **Configure diamond edges to exit from bottom-left and bottom-right**
-- [ ] **Implement oval shape for start/end nodes**
-- [ ] Review and clean up system prompt (match React Flow conventions)
-
-### Testing
-- [x] Arrows display correctly
-- [x] Smoothstep routing works
-- [x] Yes/No labels appear
-- [x] Auto-fit works during streaming
-- [ ] Test arrows are visible and appropriately sized
-- [ ] Test diamond shapes render correctly
-- [ ] Test oval shapes render correctly
-- [ ] Test complete process map with all shapes
+**Status:** COMPLETE - All tests passing (37 tests)
 
 ---
 
-## Phase 2: Node Shapes (Priority)
+## Phase 4.5: Bug Fixes ✅
 
-**Status:** IN PROGRESS (moved up from later phase)
+**Status:** COMPLETE
 
-### Shape Implementation
-- [ ] Create ShapeNode component with SVG:
-  - **Oval** for start/end nodes
-  - **Rectangle** for process steps (current default)
-  - **Diamond** for decision points (PRIORITY)
-  - Circle for connectors (optional)
-- [ ] Handle positioning for diamond nodes:
-  - Source handles at bottom-left and bottom-right
-  - Target handle at top center
-  - Prevents edges from overlapping
-- [ ] Register node types in ProcessMap.tsx
-- [ ] Update AI system prompt to assign shapes based on node function
-- [ ] Update ProcessNode type definition to include shape property
+### Fixes
+- [x] Backspace/Delete keys not working in chat input
+- [x] SSE parsing error for edges spanning multiple chunks
+- [x] Diamond node edge routing (sourceHandle for left/right branches)
 
 ---
 
 ## Phase 3: Fine-Grained Updates
 
-**Status:** Pending
 **Priority:** CRITICAL - Solves regeneration problem
 
-### Research & Decision (30 min)
-- [ ] Review JSON Patch (RFC 6902) approach in detail
-- [ ] Review Search/Replace blocks approach (Aider-style)
-- [ ] Review Hybrid approach (intent-based switching)
-- [ ] **DECIDE:** Which approach fits ProcessXY best
-- [ ] Document decision and rationale
+### Decision: Intent-Based Mode Switching ✅
+Chose hybrid approach with AI determining "create" vs "update" mode:
+- **Create mode**: Replaces entire graph (new process requests)
+- **Update mode**: Merges changes with existing nodes (modifications, color changes, status updates)
 
 ### Implementation
-- [ ] Install required libraries (e.g., `rfc6902` if using JSON Patch)
-- [ ] Create patch application utility
-- [ ] Update AI system prompt for patch format
-- [ ] Modify backend endpoint to handle patches
-- [ ] Update ChatInterface to apply patches
-- [ ] Add intent detection
-- [ ] Test: "make this red", "mark as bottleneck"
-- [ ] Test: "add node after this"
-- [ ] Test: "create new process"
+- [x] Update AI system prompt with mode indicator format
+- [x] Add mode detection in system prompt rules
+- [x] Create `mergeNodes` utility function in ChatInterface
+- [x] Handle `mode` message type in streaming consumer
+- [x] Handle `remove_node` message type for deletions
+- [x] Progressive merge updates during streaming
+
+### Testing ✅
+- [x] Unit tests for `mergeNodes()` function (8 tests)
+- [x] Mode detection logic tests (2 tests)
+- [x] NDJSON streaming format tests (5 tests)
+- [x] Integration test: CREATE mode (new process)
+- [x] Integration test: UPDATE mode (modify existing)
+- [x] Integration test: Color change verification
+- [x] API error handling test
 
 ---
 
-## Research Findings
+## Phase 4: SQLite Persistence ✅
 
-### React Flow Marker Types (Official)
-```typescript
-enum MarkerType {
-  Arrow = "arrow",           // Open arrow
-  ArrowClosed = "arrowclosed" // Filled arrow (recommended)
-}
-```
+**Status:** COMPLETE - All tests passing
 
-### Marker Properties Available
-```typescript
-markerEnd: {
-  type: "arrowclosed",  // or "arrow"
-  width: 20,            // Default ~12-15, recommended 20-30
-  height: 20,           // Match width for proportional arrows
-  color: "#000000",     // Hex color
-  strokeWidth: 2,       // Line thickness
-}
-```
+### Implementation
+- [x] SQLite database schema (`processxy.db`)
+- [x] `maps` table with id, name, nodes (JSON), edges (JSON), timestamps
+- [x] CRUD API endpoints (`/api/maps`, `/api/maps/:id`, `/api/maps/recent`)
+- [x] `usePersistence` hook with auto-save (2s debounce)
+- [x] `MapsPanel` component with dropdown UI
+- [x] Load most recent map on startup
+- [x] Create/load/delete maps from UI
+- [x] 13 persistence tests
 
-### Edge Properties We're Using
-- **type**: "smoothstep" (curved, avoids nodes)
-- **markerEnd**: Arrow configuration
-- **label**: "Yes", "No", etc.
-- **labelStyle**: Color, fontWeight
-- **labelShowBg**: true (readability)
+---
 
-### Edge Properties Available (Not Yet Used)
-- animated: Edge animation
-- sourceHandle/targetHandle: Specific connection points
-- pathOptions: { offset, borderRadius }
-- style: Custom CSS
-- interactionWidth: Click area
+## Future Enhancements (Backlog)
+
+- [ ] **Dev Control Panel** - Collapsible panel with:
+  - Load multiple test scenarios
+  - Clear map
+  - Toggle grid/guidelines
+  - Export/import JSON
+  - Performance metrics
+- [ ] Custom edge routing for backward flows (SelfConnectingEdge exists but needs AI integration)
+- [ ] Undo/redo support for patch-based updates
+- [ ] Node grouping/subprocesses
+- [ ] Export to PNG/PDF
+- [ ] Collaborative editing (CRDT support)
+- [ ] Templates for common processes
+- [ ] Keyboard shortcuts for shape changes
+- [ ] Dual-model architecture (fast + slow AI for suggestions)
+- [ ] Swimlanes/Pools (BPMN)
+- [ ] Multiple edge types (dashed for message flows, dotted for associations)
+- [ ] Gateway icons (X for exclusive, + for parallel)
+- [ ] Lean/VSM symbols (inventory triangles, kaizen bursts)
+
+---
+
+## Completed ✅
+
+### Phase 1: Core Streaming & Edges
+- [x] Implement streaming for progressive node rendering
+- [x] Fix NDJSON parser with brace-counting
+- [x] Research fine-grained update strategies
+- [x] Research React Flow advanced features
+- [x] Add arrow markers (arrowclosed, 25px)
+- [x] Add bezier edges (smooth curves)
+- [x] Add yes/no decision labels with colors
+- [x] Auto-fit viewport during streaming
+- [x] Fix marker type normalization (lowercase)
+
+### Phase 2: Node Shapes
+- [x] Implement DiamondNode for decision points
+- [x] Implement OvalNode for start/end nodes
+- [x] Implement RectangleNode for process steps
+- [x] Configure diamond handles (dynamic bottom-left/right based on outputCount)
+- [x] Register node types in ProcessMap.tsx
+- [x] Update AI system prompt to assign shapes based on node function
+- [x] Update ProcessNode type to include outputCount
+
+### Infrastructure
+- [x] Context menu for node actions (status, color, delete, duplicate)
+- [x] Auto-layout with Dagre
+- [x] Undo/redo history hook
+- [x] Keyboard shortcuts (Ctrl+Z, Ctrl+L, Delete)
+- [x] Selection chips in chat interface
+- [x] Test data with all node types and edge configurations
+- [x] SelfConnectingEdge for loop-back flows
+- [x] FloatingEdge for dynamic connection points
+
+---
+
+## Key Files
+
+- `/src/index.ts` - Backend API, streaming, system prompt, maps CRUD
+- `/src/components/ChatInterface.tsx` - Streaming consumer, graph updates
+- `/src/components/ProcessMap.tsx` - React Flow wrapper, node/edge types
+- `/src/components/MapsPanel.tsx` - Map selector dropdown, save status
+- `/src/components/nodes/DiamondNode.tsx` - Decision node (diamond shape)
+- `/src/components/nodes/OvalNode.tsx` - Start/end node (oval shape)
+- `/src/components/nodes/RectangleNode.tsx` - Process step (rectangle)
+- `/src/components/edges/SelfConnectingEdge.tsx` - Loop-back edges
+- `/src/db/maps.ts` - SQLite database operations
+- `/src/hooks/usePersistence.ts` - Auto-save, load, map management
+- `/src/hooks/useHistory.ts` - Undo/redo state management
+- `/src/types/process.ts` - Type definitions
+- `/src/utils/autoLayout.ts` - Dagre layout algorithm
+- `/src/utils/testData.ts` - Test nodes and edges
 
 ---
 
 ## Test Prompt
 
-Use this comprehensive prompt to test all Phase 1 features:
+Use this to test all features:
 
 ```
 Create a customer approval process with these steps:
@@ -132,56 +153,13 @@ Create a customer approval process with these steps:
 Make sure it has smooth curved edges with arrows, and label the decision branches clearly.
 ```
 
-Expected to test:
-- ✅ Smoothstep edges (curved)
-- ✅ Arrow markers (should be visible)
+Expected results:
+- ✅ Bezier edges (smooth curves)
+- ✅ Arrow markers (25px, visible)
 - ✅ Yes/No labels on decision branches
 - ✅ Auto-fit viewport
-- 🔲 Diamond shape (once implemented)
-- 🔲 Oval start/end (once implemented)
-
----
-
-## Future Enhancements (Backlog)
-
-- [ ] **Dev Control Panel** - Collapsible panel with:
-  - Load multiple test scenarios
-  - Clear map
-  - Toggle grid/guidelines
-  - Export/import JSON
-  - Performance metrics
-- [ ] Custom edge routing for backward flows
-- [ ] Undo/redo support for patch-based updates
-- [ ] Node grouping/subprocesses
-- [ ] Export to PNG/PDF
-- [ ] Collaborative editing (CRDT support)
-- [ ] Templates for common processes
-- [ ] Keyboard shortcuts for shape changes
-- [ ] Dual-model architecture (fast + slow AI for suggestions)
-
----
-
-## Completed ✅
-
-- [x] Implement streaming for progressive node rendering
-- [x] Fix NDJSON parser with brace-counting
-- [x] Research fine-grained update strategies
-- [x] Research React Flow advanced features
-- [x] Add arrow markers (ArrowClosed)
-- [x] Add smoothstep edges
-- [x] Add yes/no decision labels
-- [x] Auto-fit viewport during streaming
-- [x] Fix marker type normalization
-
----
-
-## Key Files
-
-- `/src/index.ts` - Backend API, streaming, system prompt
-- `/src/components/ChatInterface.tsx` - Streaming consumer, marker normalization
-- `/src/components/CustomNode.tsx` - Node rendering (to be expanded for shapes)
-- `/src/components/ProcessMap.tsx` - React Flow wrapper
-- `/src/types/process.ts` - Type definitions
+- ✅ Diamond shape for decision
+- ✅ Oval for start/end
 
 ---
 

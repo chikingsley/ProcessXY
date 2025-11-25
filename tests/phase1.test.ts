@@ -4,7 +4,7 @@ import { chromium, type Browser, type Page } from "playwright";
 describe("Phase 1: Multi-Node Selection & AI Awareness", () => {
     let browser: Browser;
     let page: Page;
-    const APP_URL = "http://localhost:3000";
+    const APP_URL = "http://localhost:4321";
 
     beforeAll(async () => {
         browser = await chromium.launch({ headless: true });

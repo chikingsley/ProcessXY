@@ -1,6 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { serve } from "bun";
 import index from "./index.html";
+import {
+	listMaps,
+	getMap,
+	saveMap,
+	deleteMap,
+	getMostRecentMap,
+} from "./db/maps";
 
 // Initialize Gemini AI on the server side only
 const apiKey = process.env.GOOGLE_API_KEY || "";
@@ -28,11 +35,27 @@ const SYSTEM_PROMPT = `
 You are an expert process mapping assistant. Your goal is to generate or modify a process map based on the user's description.
 
 OUTPUT FORMAT (NDJSON - Newline Delimited JSON):
-Output each node as a separate JSON object on its own line, followed by edges.
-Format:
-{"type":"node","data":{...node object...}}
+FIRST, output a mode indicator, then nodes, then edges.
+
+FORMAT:
+{"type":"mode","data":"update"} OR {"type":"mode","data":"create"}
 {"type":"node","data":{...node object...}}
 {"type":"edges","data":[...all edges...]}
+
+MODE RULES (CRITICAL - output this FIRST before any nodes):
+- "create" mode: Use when building a NEW process from scratch or when user asks to "create", "make", "build" a new process
+- "update" mode: Use when MODIFYING an existing process (changing colors, status, labels, adding/removing nodes)
+
+In UPDATE mode:
+- Only output nodes that are CHANGING (not the whole graph)
+- Preserve the same node IDs for nodes being modified
+- Include {"type":"remove_node","data":"node-id"} to delete a node
+- Edges array should include ALL edges for the final state (we replace edges entirely)
+
+In CREATE mode:
+- Output ALL nodes for the new process
+- Output ALL edges for the new process
+- This replaces the entire existing graph
 
 CRITICAL: Each line must be valid JSON. No additional text or explanation.
 
@@ -69,9 +92,9 @@ EDGE STRUCTURE:
   "id": "unique-string-id",
   "source": "source-node-id",
   "target": "target-node-id",
-  "type": "smoothstep",
+  "type": "bezier",
   "markerEnd": {
-    "type": "ArrowClosed"
+    "type": "arrowclosed"
   },
   "label": "optional-label (e.g., 'Yes', 'No' for decisions)",
   "labelStyle": { "fill": "#color", "fontWeight": 600 } (optional),
@@ -80,18 +103,28 @@ EDGE STRUCTURE:
 }
 
 EDGE RULES:
-1. Always include "type": "smoothstep" for professional routing
-2. Always include "markerEnd": {"type": "ArrowClosed"} for directional arrows
-3. For decision nodes, add labels like "Yes" or "No":
+1. Default edges: Use "type": "bezier" for smooth curved routing (forward flow)
+2. Always include "markerEnd": {"type": "arrowclosed"} for directional arrows
+3. CRITICAL - For DIAMOND decision nodes with 2 outputs (Yes/No):
+   - "No" branch: MUST use "sourceHandle": "left" to exit from the LEFT side of the diamond
+   - "Yes" branch: MUST use "sourceHandle": "right" to exit from the RIGHT side of the diamond
    - "Yes" branches: "label": "Yes", "labelStyle": {"fill": "#22c55e", "fontWeight": 600}
    - "No" branches: "label": "No", "labelStyle": {"fill": "#ef4444", "fontWeight": 600}
 4. Set "labelShowBg": true to make labels more readable
+5. BACKWARD/LOOP EDGES: When an edge goes BACK to an earlier node (retry, loop, return):
+   - Use "type": "selfConnecting" instead of "bezier"
+   - Add "sourceHandle": "left" or "right" to specify which side the edge exits
+   - Add "targetHandle": "left" or "right" to specify which side the edge enters
+   - The edge will automatically route AROUND other nodes instead of cutting through
+   - Example: If the "No" branch of a decision loops back, use sourceHandle: "left", targetHandle: "left"
+   - Set "animated": true on loop edges to show they're special flows
 
 LAYOUT RULES:
 1. Start from top (y=0) and flow downwards
-2. Horizontal spacing: 250px between nodes
-3. Vertical spacing: 100-150px between levels
+2. Horizontal spacing: 250-300px between nodes (give edges room to breathe)
+3. Vertical spacing: 200-280px between levels (NOT 100-150px, that's too tight!)
 4. Center align when possible
+5. For diamond nodes with multiple outputs, spread child nodes wider apart (300-350px horizontal)
 
 NATURAL LANGUAGE UNDERSTANDING:
 ⭐ When you see "SELECTED NODES" in the user request, those are the nodes the user is referring to with words like:
@@ -143,13 +176,13 @@ User: "Add a review step after this" + SELECTED NODES: ["2"]
 User: "Change everything to green"
 → Set color: "#22c55e" for ALL nodes
 
-EXAMPLE OUTPUT FOR A DECISION FLOW:
+EXAMPLE OUTPUT FOR A DECISION FLOW (note the spacing - 200-280px vertical, 300px+ horizontal):
 {"type":"node","data":{"id":"1","type":"oval","position":{"x":250,"y":0},"data":{"label":"Start"}}}
-{"type":"node","data":{"id":"2","type":"default","position":{"x":250,"y":150},"data":{"label":"Review Application"}}}
-{"type":"node","data":{"id":"3","type":"diamond","position":{"x":200,"y":300},"data":{"label":"Approved?","outputCount":2}}}
-{"type":"node","data":{"id":"4","type":"default","position":{"x":100,"y":500},"data":{"label":"Request More Info"}}}
-{"type":"node","data":{"id":"5","type":"default","position":{"x":400,"y":500},"data":{"label":"Process Approval"}}}
-{"type":"edges","data":[{"id":"e1-2","source":"1","target":"2","type":"smoothstep","markerEnd":{"type":"ArrowClosed"}},{"id":"e2-3","source":"2","target":"3","type":"smoothstep","markerEnd":{"type":"ArrowClosed"}},{"id":"e3-4","source":"3","target":"4","type":"smoothstep","label":"No","labelStyle":{"fill":"#ef4444","fontWeight":600},"labelShowBg":true,"markerEnd":{"type":"ArrowClosed"}},{"id":"e3-5","source":"3","target":"5","type":"smoothstep","label":"Yes","labelStyle":{"fill":"#22c55e","fontWeight":600},"labelShowBg":true,"markerEnd":{"type":"ArrowClosed"}}]}
+{"type":"node","data":{"id":"2","type":"default","position":{"x":250,"y":200},"data":{"label":"Review Application"}}}
+{"type":"node","data":{"id":"3","type":"diamond","position":{"x":200,"y":480},"data":{"label":"Approved?","outputCount":2}}}
+{"type":"node","data":{"id":"4","type":"default","position":{"x":50,"y":760},"data":{"label":"Request More Info"}}}
+{"type":"node","data":{"id":"5","type":"default","position":{"x":400,"y":760},"data":{"label":"Process Approval"}}}
+{"type":"edges","data":[{"id":"e1-2","source":"1","target":"2","type":"bezier","markerEnd":{"type":"arrowclosed"}},{"id":"e2-3","source":"2","target":"3","type":"bezier","markerEnd":{"type":"arrowclosed"}},{"id":"e3-4","source":"3","sourceHandle":"left","target":"4","type":"bezier","label":"No","labelStyle":{"fill":"#ef4444","fontWeight":600},"labelShowBg":true,"markerEnd":{"type":"arrowclosed"}},{"id":"e3-5","source":"3","sourceHandle":"right","target":"5","type":"bezier","label":"Yes","labelStyle":{"fill":"#22c55e","fontWeight":600},"labelShowBg":true,"markerEnd":{"type":"arrowclosed"}}]}
 
 CRITICAL:
 - Always preserve the complete node structure
@@ -159,6 +192,7 @@ CRITICAL:
 `;
 
 const server = serve({
+	port: 4321,
 	routes: {
 		// Serve index.html for all unmatched routes.
 		"/*": index,
@@ -207,10 +241,12 @@ const server = serve({
 
 					// Add selected nodes context if any nodes are selected
 					if (selectedNodeIds && selectedNodeIds.length > 0) {
-						const selectedNodes = currentGraph.nodes.filter((n: any) =>
-							selectedNodeIds.includes(n.id),
+						const selectedNodes = currentGraph.nodes.filter(
+							(n: { id: string }) => selectedNodeIds.includes(n.id),
 						);
-						const selectedLabels = selectedNodes.map((n: any) => n.data.label);
+						const selectedLabels = selectedNodes.map(
+							(n: { data: { label: string } }) => n.data.label,
+						);
 						message += `\n\n⭐ SELECTED NODES (user is referring to these): ${selectedLabels.join(", ")} (IDs: ${selectedNodeIds.join(", ")})`;
 					}
 
@@ -280,7 +316,7 @@ const server = serve({
 														} else {
 															console.log(
 																"✅ Parsed JSON object:",
-																trimmed.substring(0, 50) + "...",
+																`${trimmed.substring(0, 50)}...`,
 															);
 														}
 														// Reset for next object
@@ -290,7 +326,7 @@ const server = serve({
 														inString = false;
 														escapeNext = false;
 													}
-												} catch (e) {
+												} catch (_e) {
 													console.warn(
 														"⚠️  Invalid JSON object:",
 														currentObject.substring(0, 100),
@@ -318,10 +354,10 @@ const server = serve({
 											);
 											console.log(
 												"✅ Final JSON object:",
-												trimmed.substring(0, 50) + "...",
+												`${trimmed.substring(0, 50)}...`,
 											);
 										}
-									} catch (e) {
+									} catch (_e) {
 										console.warn(
 											"⚠️  Invalid JSON in final buffer:",
 											currentObject.substring(0, 100),
@@ -364,13 +400,13 @@ const server = serve({
 		},
 
 		"/api/hello": {
-			async GET(req) {
+			async GET(_req) {
 				return Response.json({
 					message: "Hello, world!",
 					method: "GET",
 				});
 			},
-			async PUT(req) {
+			async PUT(_req) {
 				return Response.json({
 					message: "Hello, world!",
 					method: "PUT",
@@ -383,6 +419,139 @@ const server = serve({
 			return Response.json({
 				message: `Hello, ${name}!`,
 			});
+		},
+
+		// Maps CRUD API
+		"/api/maps": {
+			// List all saved maps
+			async GET(_req) {
+				try {
+					const maps = listMaps();
+					return Response.json({ maps });
+				} catch (error) {
+					console.error("Error listing maps:", error);
+					return Response.json(
+						{ error: "Failed to list maps" },
+						{ status: 500 },
+					);
+				}
+			},
+
+			// Save a new map or update existing
+			async POST(req) {
+				try {
+					const body = await req.json();
+					const { id, name, graph } = body;
+
+					if (!name || !graph) {
+						return Response.json(
+							{ error: "Name and graph are required" },
+							{ status: 400 },
+						);
+					}
+
+					const savedMap = saveMap(graph, name, id);
+					console.log(`💾 Saved map: ${savedMap.name} (${savedMap.id})`);
+
+					return Response.json({
+						success: true,
+						map: {
+							id: savedMap.id,
+							name: savedMap.name,
+							nodeCount: JSON.parse(savedMap.nodes).length,
+							created_at: savedMap.created_at,
+							updated_at: savedMap.updated_at,
+						},
+					});
+				} catch (error) {
+					console.error("Error saving map:", error);
+					return Response.json(
+						{ error: "Failed to save map" },
+						{ status: 500 },
+					);
+				}
+			},
+		},
+
+		"/api/maps/recent": {
+			// Get the most recently updated map (for auto-load)
+			async GET(_req) {
+				try {
+					const map = getMostRecentMap();
+					if (!map) {
+						return Response.json({ map: null });
+					}
+
+					return Response.json({
+						map: {
+							id: map.id,
+							name: map.name,
+							nodes: JSON.parse(map.nodes),
+							edges: JSON.parse(map.edges),
+							created_at: map.created_at,
+							updated_at: map.updated_at,
+						},
+					});
+				} catch (error) {
+					console.error("Error getting recent map:", error);
+					return Response.json(
+						{ error: "Failed to get recent map" },
+						{ status: 500 },
+					);
+				}
+			},
+		},
+
+		"/api/maps/:id": {
+			// Get a specific map
+			async GET(req) {
+				try {
+					const id = req.params.id;
+					const map = getMap(id);
+
+					if (!map) {
+						return Response.json({ error: "Map not found" }, { status: 404 });
+					}
+
+					return Response.json({
+						map: {
+							id: map.id,
+							name: map.name,
+							nodes: JSON.parse(map.nodes),
+							edges: JSON.parse(map.edges),
+							created_at: map.created_at,
+							updated_at: map.updated_at,
+						},
+					});
+				} catch (error) {
+					console.error("Error getting map:", error);
+					return Response.json(
+						{ error: "Failed to get map" },
+						{ status: 500 },
+					);
+				}
+			},
+
+			// Delete a map
+			async DELETE(req) {
+				try {
+					const id = req.params.id;
+					const deleted = deleteMap(id);
+
+					if (!deleted) {
+						return Response.json({ error: "Map not found" }, { status: 404 });
+					}
+
+					console.log(`🗑️ Deleted map: ${id}`);
+					return Response.json({ success: true });
+				} catch (error) {
+					console.error("Error deleting map:", error);
+					return Response.json(
+						{ error: "Failed to delete map" },
+						{ status: 500 },
+					);
+				}
+			},
 		},
 	},
 

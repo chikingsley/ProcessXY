@@ -4,6 +4,43 @@ All notable changes to ProcessXY will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-25
+
+### Phase 4: SQLite Persistence & Bug Fixes
+
+**Added:**
+- SQLite persistence for saving/loading process maps
+- `MapsPanel` component with dropdown UI for map management
+- `usePersistence` hook with auto-save (2s debounce)
+- CRUD API endpoints (`/api/maps`, `/api/maps/:id`, `/api/maps/recent`)
+- Load most recent map on startup
+- 13 persistence tests
+
+**Fixed:**
+- Backspace/Delete keys now work in chat input (keyboard shortcuts skip input fields)
+- SSE parsing now handles JSON spanning multiple network chunks (brace-counting)
+- Diamond node edge routing - edges now exit from correct left/right handles
+- System prompt updated with `sourceHandle` requirements for decision branches
+
+**Technical:**
+- Client-side NDJSON parser with brace counting for partial JSON accumulation
+- `useKeyboardShortcuts` hook checks for INPUT/TEXTAREA/contentEditable focus
+
+## [0.2.0] - 2025-11-24
+
+### Phase 3: Fine-Grained Updates
+
+**Added:**
+- Intent-based mode switching (AI determines "create" vs "update" mode)
+- `mergeNodes()` utility for progressive graph updates
+- Edge preservation in UPDATE mode (prevents accidental edge deletion)
+- 18 phase 3 tests + 6 integration tests
+
+**Features:**
+- Create mode: Replaces entire graph for new process requests
+- Update mode: Merges changes with existing nodes for modifications
+- Progressive streaming updates during AI response
+
 ## [0.1.0] - 2025-01-20
 
 ### ✨ Phase 1: Multi-Node Selection with AI Awareness

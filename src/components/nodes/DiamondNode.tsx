@@ -4,27 +4,30 @@ import type { ProcessNode } from "../../types/process";
 
 /**
  * Calculate bottom handle positions based on output count
- * Positions are distributed along the 25%-75% range of the width
+ * Positions are spread wide along the bottom edges of the diamond
+ * Diamond vertices: left(20,80) -> bottom(80,140) -> right(140,80)
  */
 function getBottomHandlePoints(count: number): { left: number; top: number }[] {
-	// Distribute x positions across the bottom half of the diamond (from left vertex to right vertex)
+	// Spread handles wide - use more of the diamond's bottom edges
+	// Percentages represent position from left vertex (0%) to right vertex (100%)
 	const xPercents =
 		count === 1
-			? [50]
+			? [50] // Center bottom
 			: count === 2
-				? [33, 67]
+				? [20, 80] // Near the corners for clear left/right separation
 				: count === 3
-					? [25, 50, 75]
+					? [15, 50, 85] // Wide spread for 3 outputs
 					: count === 4
-						? [25, 41.7, 58.3, 75]
-						: [...Array(count)].map((_, i) => 25 + (50 / (count - 1)) * i);
+						? [12, 37, 63, 88] // Even wider for 4 outputs
+						: [...Array(count)].map((_, i) => 10 + (80 / (count - 1)) * i);
 
 	// Convert x percents into points on the lower edges of the diamond
-	// Diamond vertices: (20,80) -> (80,140) -> (140,80)
+	// Diamond shape: left vertex at (20,80), bottom at (80,140), right at (140,80)
 	return xPercents.map((percent) => {
 		const x = 20 + ((140 - 20) * percent) / 100;
 		const isRightHalf = x >= 80;
-		const y = isRightHalf ? 220 - x : x + 60; // y=x+60 on left segment, y=220-x on right
+		// Calculate y position on the diamond edge
+		const y = isRightHalf ? 220 - x : x + 60;
 
 		return { left: x, top: y };
 	});

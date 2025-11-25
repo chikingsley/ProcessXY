@@ -83,7 +83,7 @@ export const TEST_NODES: Node[] = [
 	{
 		id: "9",
 		type: "default",
-		position: { x: 550, y: 480 },
+		position: { x: 500, y: 480 },
 		data: {
 			label: "Low Priority",
 			status: "normal",
@@ -101,7 +101,7 @@ export const TEST_NODES: Node[] = [
 	{
 		id: "11",
 		type: "default",
-		position: { x: 850, y: 480 },
+		position: { x: 900, y: 480 },
 		data: {
 			label: "High Priority",
 			status: "issue",
@@ -120,7 +120,7 @@ export const TEST_NODES: Node[] = [
 	{
 		id: "13",
 		type: "default",
-		position: { x: 500, y: 1040 },
+		position: { x: 400, y: 1040 },
 		data: {
 			label: "Minimal Risk",
 			status: "normal",
@@ -129,7 +129,7 @@ export const TEST_NODES: Node[] = [
 	{
 		id: "14",
 		type: "default",
-		position: { x: 650, y: 1040 },
+		position: { x: 600, y: 1040 },
 		data: {
 			label: "Low Risk",
 			status: "normal",
@@ -147,7 +147,7 @@ export const TEST_NODES: Node[] = [
 	{
 		id: "16",
 		type: "default",
-		position: { x: 950, y: 1040 },
+		position: { x: 1000, y: 1040 },
 		data: {
 			label: "High Risk",
 			status: "bottleneck",

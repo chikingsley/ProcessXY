@@ -6,6 +6,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { ProcessEdge, ProcessGraph, ProcessNode } from "../types/process";
 
+/**
+ * Merge updated nodes with existing nodes
+ * - Nodes in updatedNodes replace existing nodes with the same ID
+ * - Nodes in nodeIdsToRemove are filtered out
+ * - Existing nodes not in either list are preserved
+ */
+function mergeNodes(
+	existingNodes: Node[],
+	updatedNodes: Node[],
+	nodeIdsToRemove: Set<string>,
+): Node[] {
+	// Create a map of updated nodes by ID for fast lookup
+	const updatedNodeMap = new Map(updatedNodes.map((n) => [n.id, n]));
+
+	// Start with existing nodes, replacing/filtering as needed
+	const mergedNodes: Node[] = [];
+
+	for (const node of existingNodes) {
+		// Skip if marked for removal
+		if (nodeIdsToRemove.has(node.id)) continue;
+
+		// Use updated version if available, otherwise keep existing
+		const updatedNode = updatedNodeMap.get(node.id);
+		if (updatedNode) {
+			mergedNodes.push(updatedNode);
+			updatedNodeMap.delete(node.id); // Mark as processed
+		} else {
+			mergedNodes.push(node);
+		}
+	}
+
+	// Add any new nodes that weren't replacements
+	for (const node of updatedNodeMap.values()) {
+		mergedNodes.push(node);
+	}
+
+	return mergedNodes;
+}
+
 interface Message {
 	id: string;
 	role: "user" | "assistant";
@@ -85,8 +124,20 @@ export function ChatInterface({
 				throw new Error("No response body");
 			}
 
+			// Track update mode: "create" replaces everything, "update" merges changes
+			let mode: "create" | "update" = "create";
+
+			// For create mode: collect all new nodes
 			const streamedNodes: Node[] = [];
+			// For update mode: track nodes to modify/add and IDs to remove
+			const nodesToMerge: Node[] = [];
+			const nodeIdsToRemove: Set<string> = new Set();
+
 			let streamedEdges: Edge[] = [];
+
+			// Buffer for accumulating partial JSON across chunks
+			let jsonBuffer = "";
+			let braceCount = 0;
 
 			while (true) {
 				const { done, value } = await reader.read();
@@ -96,55 +147,141 @@ export function ChatInterface({
 				const lines = chunk.split("\n");
 
 				for (const line of lines) {
-					if (line.startsWith("data: ")) {
-						const jsonStr = line.slice(6); // Remove 'data: ' prefix
-						try {
-							const data = JSON.parse(jsonStr);
+					let content = line;
 
-							if (data.type === "node") {
-								// Add node progressively
+					// Handle new data line
+					if (line.startsWith("data: ")) {
+						content = line.slice(6); // Remove 'data: ' prefix
+					}
+
+					// Skip empty lines
+					if (!content.trim()) continue;
+
+					// If we're not in the middle of accumulating, and this doesn't look like JSON, skip
+					if (jsonBuffer === "" && !content.startsWith("{")) continue;
+
+					// Accumulate content
+					jsonBuffer += content;
+
+					// Count braces to detect complete JSON
+					for (const char of content) {
+						if (char === "{" || char === "[") braceCount++;
+						else if (char === "}" || char === "]") braceCount--;
+					}
+
+					// Only parse when we have a complete JSON object
+					if (braceCount !== 0) continue;
+
+					const jsonStr = jsonBuffer;
+					jsonBuffer = "";
+					braceCount = 0;
+
+					try {
+						const data = JSON.parse(jsonStr);
+
+						if (data.type === "mode") {
+							// Set the mode for this response
+							mode = data.data === "update" ? "update" : "create";
+							console.log(`📝 AI mode: ${mode}`);
+						} else if (data.type === "node") {
+							if (mode === "create") {
+								// Create mode: collect all nodes fresh
 								streamedNodes.push(data.data);
 								onGraphUpdate([...streamedNodes], streamedEdges);
-								// Option A: Fit after every node
-								if (onStreamComplete) {
-									setTimeout(() => onStreamComplete(), 10);
-								}
-							} else if (data.type === "edges") {
-								// Normalize edge marker types (ArrowClosed → arrowclosed)
-								const normalizedEdges = data.data.map((edge: Edge) => {
-									// Check if markerEnd is an object with a type property
-									const markerEnd = edge.markerEnd;
-									const normalizedMarkerEnd =
-										markerEnd &&
-										typeof markerEnd === "object" &&
-										"type" in markerEnd
-											? {
-													...markerEnd,
-													type: markerEnd.type.toLowerCase(),
-												}
-											: markerEnd;
-
-									return {
-										...edge,
-										markerEnd: normalizedMarkerEnd,
-									};
-								});
-								streamedEdges = normalizedEdges;
-								onGraphUpdate([...streamedNodes], streamedEdges);
-							} else if (data.type === "complete") {
-								// Stream complete - trigger fitView
-								console.log("Stream complete");
-								if (onStreamComplete) {
-									// Small delay to ensure DOM is updated
-									setTimeout(() => onStreamComplete(), 50);
-								}
-							} else if (data.type === "error") {
-								throw new Error(data.message);
+							} else {
+								// Update mode: track nodes to merge
+								nodesToMerge.push(data.data);
+								// Merge with existing nodes progressively
+								const mergedNodes = mergeNodes(
+									currentNodes,
+									nodesToMerge,
+									nodeIdsToRemove,
+								);
+								// Preserve existing edges during progressive updates
+								const progressiveEdges =
+									streamedEdges.length > 0
+										? streamedEdges
+										: (currentEdges as Edge[]);
+								onGraphUpdate(mergedNodes, progressiveEdges);
 							}
-						} catch (_e) {
-							// Skip invalid JSON
-							console.warn("Failed to parse SSE data:", jsonStr);
+							// Fit after every node
+							if (onStreamComplete) {
+								setTimeout(() => onStreamComplete(), 10);
+							}
+						} else if (data.type === "remove_node") {
+							// Mark node for removal (update mode only)
+							nodeIdsToRemove.add(data.data);
+							const mergedNodes = mergeNodes(
+								currentNodes,
+								nodesToMerge,
+								nodeIdsToRemove,
+							);
+							// Preserve existing edges when removing nodes
+							const progressiveEdges =
+								streamedEdges.length > 0
+									? streamedEdges
+									: (currentEdges as Edge[]);
+							onGraphUpdate(mergedNodes, progressiveEdges);
+						} else if (data.type === "edges") {
+							// Normalize edge marker types to lowercase (safety net)
+							const normalizedEdges = data.data.map((edge: Edge) => {
+								// Check if markerEnd is an object with a type property
+								const markerEnd = edge.markerEnd;
+								const normalizedMarkerEnd =
+									markerEnd &&
+									typeof markerEnd === "object" &&
+									"type" in markerEnd
+										? {
+												...markerEnd,
+												type: markerEnd.type.toLowerCase(),
+											}
+										: markerEnd;
+
+								return {
+									...edge,
+									markerEnd: normalizedMarkerEnd,
+								};
+							});
+
+							// In UPDATE mode, preserve existing edges if AI sends empty array
+							// This prevents accidental edge deletion when only updating node properties
+							if (mode === "update" && normalizedEdges.length === 0) {
+								console.log(
+									"⚠️ UPDATE mode: AI sent empty edges, preserving existing edges",
+								);
+								// Don't update streamedEdges, keep using currentEdges
+							} else {
+								streamedEdges = normalizedEdges;
+							}
+
+							if (mode === "create") {
+								onGraphUpdate([...streamedNodes], streamedEdges);
+							} else {
+								const mergedNodes = mergeNodes(
+									currentNodes,
+									nodesToMerge,
+									nodeIdsToRemove,
+								);
+								// In update mode, use currentEdges if streamedEdges is still empty
+								const finalEdges =
+									streamedEdges.length > 0 ? streamedEdges : currentEdges;
+								onGraphUpdate(mergedNodes, finalEdges as Edge[]);
+							}
+						} else if (data.type === "complete") {
+							// Stream complete - trigger fitView
+							console.log(
+								`✅ Stream complete (mode: ${mode}, nodes: ${mode === "create" ? streamedNodes.length : nodesToMerge.length} modified)`,
+							);
+							if (onStreamComplete) {
+								// Small delay to ensure DOM is updated
+								setTimeout(() => onStreamComplete(), 50);
+							}
+						} else if (data.type === "error") {
+							throw new Error(data.message);
 						}
+					} catch (_e) {
+						// Skip invalid JSON
+						console.warn("Failed to parse SSE data:", jsonStr);
 					}
 				}
 			}
