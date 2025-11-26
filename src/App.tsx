@@ -13,7 +13,7 @@ import { ProcessMap } from "./components/ProcessMap";
 import { useHistory } from "./hooks/useHistory";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { usePersistence } from "./hooks/usePersistence";
-import { getLayoutedElements } from "./utils/autoLayout";
+import { getLayoutedElements, LAYOUT_PRESETS } from "./utils/autoLayout";
 import { TEST_EDGES, TEST_NODES } from "./utils/testData";
 import "./index.css";
 
@@ -27,7 +27,9 @@ export function App() {
 	const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 	const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
 	const [fitViewFn, setFitViewFn] = useState<(() => void) | null>(null);
+	const [layoutPresetName, setLayoutPresetName] = useState<string | null>(null);
 	const initialLoadDone = useRef(false);
+	const layoutPresetIndex = useRef(0);
 
 	// Persistence hook for auto-save and map management
 	const persistence = usePersistence({
@@ -173,15 +175,26 @@ export function App() {
 		[setNodes],
 	);
 
-	// Auto-layout function
-	const handleAutoLayout = useCallback(() => {
-		const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-			nodes,
-			edges,
-		);
+	// Auto-layout function - cycles through presets on each press
+	const handleAutoLayout = useCallback(async () => {
+		const preset = LAYOUT_PRESETS[layoutPresetIndex.current] ?? LAYOUT_PRESETS[0];
+		const { nodes: layoutedNodes, edges: layoutedEdges, presetName } =
+			await getLayoutedElements(nodes, edges, "TB", preset);
 		setNodes(layoutedNodes);
 		setEdges(layoutedEdges);
-	}, [nodes, edges, setNodes, setEdges]);
+		setLayoutPresetName(presetName);
+
+		// Log to console for debugging
+		console.log(`Layout applied: "${presetName}" (${layoutPresetIndex.current + 1}/${LAYOUT_PRESETS.length})`);
+		console.log(`  centerX: ${preset?.centerX}, levelHeight: ${preset?.levelHeight}, branchOffset: ${preset?.branchOffset}`);
+
+		// Cycle to next preset for next press
+		layoutPresetIndex.current = (layoutPresetIndex.current + 1) % LAYOUT_PRESETS.length;
+
+		// Clear the preset name display after 2 seconds
+		setTimeout(() => setLayoutPresetName(null), 2000);
+		setTimeout(() => fitViewFn?.(), 50);
+	}, [nodes, edges, setNodes, setEdges, fitViewFn]);
 
 	// Load test map
 	const handleLoadTestMap = useCallback(() => {
@@ -272,6 +285,12 @@ export function App() {
 
 	return (
 		<div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
+			{/* Layout preset indicator */}
+			{layoutPresetName && (
+				<div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-fade-in">
+					Layout: {layoutPresetName} ({layoutPresetIndex.current}/{LAYOUT_PRESETS.length})
+				</div>
+			)}
 			<div className="w-[30%] min-w-[300px] max-w-[400px] h-full border-r border-border flex flex-col">
 				{/* Maps Panel Header */}
 				<div className="p-3 border-b border-border bg-muted/30">
