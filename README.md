@@ -45,27 +45,31 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## 📝 Usage Examples
 
 ### Create a Process
-```
+
+```text
 Type: "Create a customer onboarding process"
 → AI generates nodes and edges
 ```
 
 ### Select and Modify
-```
+
+```text
 1. Click a node (see green glow)
 2. Type: "Make this red"
 → Selected node turns red
 ```
 
 ### Multi-Node Operations
-```
+
+```text
 1. Shift+Click multiple nodes
 2. Type: "Mark these as bottlenecks"
 → All selected nodes get red border + indicator
 ```
 
 ### Find by Name
-```
+
+```text
 Type: "Mark the approval step as complete"
 → AI finds "approval" node, marks it green
 ```
@@ -87,12 +91,13 @@ bun run ci:full
 ```
 
 **Test Results:** 16/16 passing ✅
+
 - 11 unit tests
 - 5 E2E tests
 
 ## 🏗️ Project Structure
 
-```
+```text
 ProcessXY/
 ├── src/
 │   ├── components/       # React components
@@ -122,6 +127,7 @@ MIT License - see LICENSE file for details.
 ## 🙏 Acknowledgments
 
 Built with:
+
 - [Bun](https://bun.sh) - JavaScript runtime
 - [React](https://react.dev) - UI framework
 - [XyFlow](https://xyflow.com) - Flow visualization

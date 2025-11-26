@@ -18,6 +18,7 @@ This document defines the standards and conventions for process mapping in Proce
 | **Oval** | `oval` | Start/End terminator | Process boundaries only |
 
 **Rules:**
+
 - Use `type: "oval"` for START and END nodes only
 - Use `type: "diamond"` for decision points (requires `outputCount` in data)
 - Use `type: "default"` (or omit type field) for all other process steps
@@ -31,6 +32,7 @@ This document defines the standards and conventions for process mapping in Proce
 **Pattern:** Action Verb + Object (2-5 words)
 
 **Examples:**
+
 - ✓ "Review Application"
 - ✓ "Send Notification"
 - ✓ "Approve Request"
@@ -39,6 +41,7 @@ This document defines the standards and conventions for process mapping in Proce
 - ✗ "Notification" (no action verb)
 
 **Guidelines:**
+
 - Start with action verb in imperative form
 - Keep concise: 30-50 characters maximum
 - Use plain language, avoid jargon
@@ -47,16 +50,19 @@ This document defines the standards and conventions for process mapping in Proce
 ### Description (Optional)
 
 **Use descriptions ONLY when needed for:**
+
 - Complex context requiring clarification
 - Key parameters or conditions
 - Disambiguation of similar steps
 
 **Examples:**
+
 - "Review Application" → Description: "Verify compliance with SOX regulations" ✓
 - "Wait for Approval" → Description: "24-48 hour SLA" ✓
 - "Send Notification" → Description: "Notify customer" ✗ (redundant!)
 
 **Guidelines:**
+
 - Maximum 80-120 characters
 - Omit if label is self-explanatory
 - Avoid repeating the label in different words
@@ -75,12 +81,14 @@ This document defines the standards and conventions for process mapping in Proce
 | ~~Complete~~ | ~~Green~~ | ~~`#22c55e`~~ | (Not currently used) |
 
 **Usage Rules:**
+
 - Red: Critical bottlenecks, blockers, urgent issues
 - Yellow: Non-critical issues, warnings, needs review
 - Gray: Default state for all normal operations
 - Green: Reserved for future use
 
 **Application:**
+
 - Status colors appear as background tints and border emphasis
 - Small indicator badge in top-right corner of node
 - Color conveys process state, not node type
@@ -93,24 +101,26 @@ This document defines the standards and conventions for process mapping in Proce
 
 | Type | Usage | When to Use |
 |------|-------|-------------|
-| `bezier` | Standard curved edge | Regular sequential flow |
+| `smoothstep` | Standard right-angle edge | Regular sequential flow (straight lines with corners) |
 | `floating` | Auto-bowing edge | Edges from diamond nodes (optional) |
 | `selfConnecting` | Smart loop-back routing | Retry flows, error handling loops |
 
 **Guidelines:**
-- **Regular flow:** Use `"bezier"` for standard node-to-node connections
-- **Diamond outputs:** Use `"bezier"` (or `"floating"` for auto-curving)
+
+- **Regular flow:** Use `"smoothstep"` for standard node-to-node connections (cleaner than bezier)
+- **Diamond outputs:** Use `"smoothstep"` for decision branches
 - **Loop-backs:** Use `"selfConnecting"` when edge goes backward to previous node
 
 ### Edge Styling
 
 **Standard edge structure:**
+
 ```javascript
 {
   id: "edge-id",
   source: "source-node-id",
   target: "target-node-id",
-  type: "bezier",
+  type: "smoothstep",
   style: {
     strokeWidth: 2,
     stroke: "#64748b"  // Default gray
@@ -127,6 +137,7 @@ This document defines the standards and conventions for process mapping in Proce
 ### Edge Colors for Decisions
 
 **2-Way Decisions (Yes/No):**
+
 - **"Yes" branch:** Green (#22c55e) - success/approval path
 - **"No" branch:** Red (#ef4444) - rejection/alternative path
 
@@ -151,6 +162,7 @@ This document defines the standards and conventions for process mapping in Proce
 ```
 
 **3+ Way Decisions:**
+
 - Use **neutral gray** for all edges
 - Differentiate with labels only ("Low", "Medium", "High")
 - Avoid rainbow coloring (reduces visual clutter)
@@ -158,12 +170,14 @@ This document defines the standards and conventions for process mapping in Proce
 ### Edge Labels
 
 **Use edge labels for:**
+
 - Decision branch identification ("Yes", "No", "Approved", "Rejected")
 - Wait times and delays ("Wait 24 hours", "2-3 business days")
 - Conditions or criteria ("If amount > $1000")
 - Flow type indicators ("Retry", "Escalate")
 
 **Format:**
+
 ```javascript
 {
   label: "Label text",
@@ -191,6 +205,7 @@ This document defines the standards and conventions for process mapping in Proce
 ```
 
 **Standard counts:**
+
 - `outputCount: 2` → Yes/No decisions (most common)
 - `outputCount: 3` → Low/Medium/High, Priority routing
 - `outputCount: 4+` → Multi-way routing
@@ -198,10 +213,12 @@ This document defines the standards and conventions for process mapping in Proce
 ### Handle IDs for Diamond Outputs
 
 **2 outputs:**
+
 - `sourceHandle: "left"` → Typically "No" branch
 - `sourceHandle: "right"` → Typically "Yes" branch
 
 **3+ outputs:**
+
 - `sourceHandle: "output-0"` → First branch (leftmost)
 - `sourceHandle: "output-1"` → Second branch
 - `sourceHandle: "output-2"` → Third branch
@@ -218,7 +235,8 @@ This document defines the standards and conventions for process mapping in Proce
 - **Subsequent levels:** Increment by 200-280px
 
 **Example:**
-```
+
+```text
 Level 1 (Start):     y = 0
 Level 2:             y = 200
 Level 3 (Decision):  y = 480
@@ -232,7 +250,8 @@ Level 4 (Branches):  y = 760
 - **Multi-way splits:** Distribute evenly with adequate spacing
 
 **Example for 2-branch decision:**
-```
+
+```text
 Decision:        x = 200 (centered)
 Left branch:     x = 50  (150px left of center)
 Right branch:    x = 400 (200px right of center)
@@ -245,15 +264,18 @@ Right branch:    x = 400 (200px right of center)
 ### Guidelines
 
 **Optimal lane count:** 3-7 lanes
+
 - **< 3 lanes:** Probably don't need swim lanes
 - **> 7 lanes:** Too complex, consider alternative organization
 
 **Layout:**
+
 - **Horizontal lanes** (rows) - Default for desktop
 - Lanes represent departments, roles, or systems
 - Each node belongs to one lane via `laneId` property
 
 **Future implementation:**
+
 ```javascript
 {
   data: {
@@ -270,20 +292,24 @@ Right branch:    x = 400 (200px right of center)
 ### Cycle Time and Lead Time
 
 **Definitions:**
+
 - **Cycle Time:** Time to complete a specific task/node (active work time)
 - **Lead Time:** Total elapsed time including waits (end-to-end time)
 
 **Placement:**
+
 - **Cycle time:** Node property (time to complete that specific step)
 - **Lead time:** Can be calculated as sum of cycle times + wait times
 - **Wait/delay times:** Edge labels between nodes
 
 **Display:**
+
 - Show in node tooltip/details panel
 - Optional: Display as small metric below node label
 - Edge labels for inter-step delays: "Wait 24 hours"
 
 **Future implementation:**
+
 ```javascript
 {
   data: {
@@ -299,6 +325,7 @@ Right branch:    x = 400 (200px right of center)
 ## Best Practices Summary
 
 ### Do's ✓
+
 - Use action verbs for all process step labels
 - Keep labels concise (2-5 words)
 - Use descriptions sparingly (complex context only)
@@ -309,6 +336,7 @@ Right branch:    x = 400 (200px right of center)
 - Specify `sourceHandle` for diamond outputs
 
 ### Don'ts ✗
+
 - Don't use noun phrases for labels
 - Don't add redundant descriptions
 - Don't overuse colors (reduces meaning)
@@ -321,6 +349,7 @@ Right branch:    x = 400 (200px right of center)
 ## Reference Standards
 
 This document draws from:
+
 - **BPMN 2.0** (ISO/IEC 19510:2013) - Business process notation
 - **Value Stream Mapping** (Lean Enterprise Institute) - Flow optimization
 - **ANSI/ISO Flowchart Standards** - Universal symbol conventions
@@ -329,9 +358,19 @@ This document draws from:
 
 ---
 
+## Future Roadmap (Standards Additions)
+
+- **Scenario metadata** - Add optional `cost`, `duration`, and `resourceLoad` fields per node/edge to support simulation and ROI comparisons.
+- **Baseline vs. target states** - Allow `state: "as-is" | "to-be"` tagging plus `variantId` to track proposals side-by-side.
+- **Persona views** - Introduce `personaId` tags for nodes/edges to drive filtered views for roles (analyst, operator, exec).
+- **Import mapping** - Document mapping from BPMN/Visio/CSV fields to ProcessXY types to keep labels, IDs, and handles stable on ingest.
+- **Automation markers** - Reserve `automationHint` and `systemOwner` fields to flag steps that will be automated or owned by specific systems.
+- **Outcome metrics** - Standardize `successRate`, `errorRate`, and `sla` fields to feed dashboards and what-if reporting.
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2024-11-24 | Initial standards documentation |
-

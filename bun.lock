@@ -11,6 +11,7 @@
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slot": "^1.2.3",
         "@radix-ui/react-tooltip": "^1.2.8",
+        "@types/dagre": "^0.7.53",
         "@xyflow/react": "^12.9.3",
         "bun-plugin-tailwind": "^0.1.2",
         "class-variance-authority": "^0.7.1",
@@ -24,7 +25,6 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "@types/dagre": "^0.7.53",
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "playwright": "^1.52.0",

@@ -92,7 +92,7 @@ EDGE STRUCTURE:
   "id": "unique-string-id",
   "source": "source-node-id",
   "target": "target-node-id",
-  "type": "bezier",
+  "type": "straight or bezier (see rules below)",
   "markerEnd": {
     "type": "arrowclosed"
   },
@@ -102,29 +102,55 @@ EDGE STRUCTURE:
   "animated": false (optional)
 }
 
-EDGE RULES:
-1. Default edges: Use "type": "bezier" for smooth curved routing (forward flow)
-2. Always include "markerEnd": {"type": "arrowclosed"} for directional arrows
-3. CRITICAL - For DIAMOND decision nodes with 2 outputs (Yes/No):
+EDGE TYPE RULES (CRITICAL):
+1. STRAIGHT edges ("type": "straight"): Use for normal sequential flow between non-diamond nodes
+   - Oval to Rectangle (Start to first step)
+   - Rectangle to Rectangle (step to step)
+   - Rectangle to Diamond (step to decision)
+   - Rectangle to Oval (last step to End)
+2. BEZIER edges ("type": "bezier"): Use ONLY for diamond decision outputs
+   - Diamond to Rectangle (decision branches)
+   - Creates smooth curves from the diamond's angled sides
+3. Always include "markerEnd": {"type": "arrowclosed"} for directional arrows
+4. CRITICAL - For DIAMOND decision nodes with 2 outputs (Yes/No):
    - "No" branch: MUST use "sourceHandle": "left" to exit from the LEFT side of the diamond
    - "Yes" branch: MUST use "sourceHandle": "right" to exit from the RIGHT side of the diamond
    - "Yes" branches: "label": "Yes", "labelStyle": {"fill": "#22c55e", "fontWeight": 600}
    - "No" branches: "label": "No", "labelStyle": {"fill": "#ef4444", "fontWeight": 600}
-4. Set "labelShowBg": true to make labels more readable
-5. BACKWARD/LOOP EDGES: When an edge goes BACK to an earlier node (retry, loop, return):
-   - Use "type": "selfConnecting" instead of "bezier"
+5. Set "labelShowBg": true to make labels more readable
+6. BACKWARD/LOOP EDGES: When an edge goes BACK to an earlier node (retry, loop, return):
+   - Use "type": "selfConnecting" instead of "straight"
    - Add "sourceHandle": "left" or "right" to specify which side the edge exits
    - Add "targetHandle": "left" or "right" to specify which side the edge enters
    - The edge will automatically route AROUND other nodes instead of cutting through
    - Example: If the "No" branch of a decision loops back, use sourceHandle: "left", targetHandle: "left"
    - Set "animated": true on loop edges to show they're special flows
 
-LAYOUT RULES:
-1. Start from top (y=0) and flow downwards
-2. Horizontal spacing: 250-300px between nodes (give edges room to breathe)
-3. Vertical spacing: 200-280px between levels (NOT 100-150px, that's too tight!)
-4. Center align when possible
-5. For diamond nodes with multiple outputs, spread child nodes wider apart (300-350px horizontal)
+LAYOUT RULES (CENTERED SPINE):
+Use a centered vertical spine with symmetric horizontal branching:
+
+1. Define a CENTER_X (e.g., 300) - this is the main vertical axis
+2. Define LEVEL_HEIGHT (e.g., 120) - consistent vertical spacing between levels
+3. Define BRANCH_OFFSET (e.g., 180) - distance from center to branch nodes
+
+POSITIONING:
+- Main flow nodes (Start, steps, End): Place on CENTER_X
+- Diamond decisions: Place on CENTER_X
+- Decision branches: Place symmetrically at CENTER_X ± BRANCH_OFFSET
+  - "No"/left branch: x = CENTER_X - BRANCH_OFFSET
+  - "Yes"/right branch: x = CENTER_X + BRANCH_OFFSET
+- Happy path continuation: Return to CENTER_X after branches merge
+
+VERTICAL LEVELS:
+- Level 0 (y=0): Start node
+- Level 1 (y=LEVEL_HEIGHT): First process step
+- Level 2 (y=LEVEL_HEIGHT*2): Decision diamond
+- Level 3 (y=LEVEL_HEIGHT*3): Decision branch targets
+- Level 4+ continue incrementing
+
+EDGE STYLING FOR SECONDARY PATHS:
+- Loop/retry edges should use "strokeDasharray": "5,5" to show they're exception paths
+- Use lighter color (#94a3b8) for secondary flows
 
 NATURAL LANGUAGE UNDERSTANDING:
 ⭐ When you see "SELECTED NODES" in the user request, those are the nodes the user is referring to with words like:

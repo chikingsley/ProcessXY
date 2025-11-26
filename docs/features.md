@@ -9,16 +9,19 @@ Phase 1 implementation adds **Multi-Node Selection with AI Awareness** to Proces
 ### 1. **Multi-Node Selection State Management**
 
 **Files Modified:**
+
 - `src/App.tsx` - Added `selectedNodeIds` state and `handleSelectionChange` callback
 - `src/components/ProcessMap.tsx` - Added `onSelectionChange` prop
 
 **What It Does:**
+
 - Tracks which nodes are currently selected on the canvas
 - Updates selection state in real-time when users click nodes
 - Supports single-node and multi-node selection (Shift+Click, Ctrl+Click)
 - Propagates selection state to chat interface
 
 **Code Changes:**
+
 ```typescript
 // App.tsx
 const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -33,18 +36,22 @@ const handleSelectionChange = useCallback((params: { nodes: Node[]; edges: Edge[
 ### 2. **Custom Node Component with Visual Feedback**
 
 **Files Created:**
+
 - `src/components/CustomNode.tsx` - New custom node component
 
 **Files Modified:**
+
 - `src/components/ProcessMap.tsx` - Registered custom node type
 
 **What It Does:**
+
 - Displays nodes with status-based styling (bottleneck, issue, complete)
 - Shows green glow effect when nodes are selected
 - Displays colored status indicators (dots) on nodes
 - Supports custom colors via hex codes
 
 **Visual Feedback:**
+
 - ✅ **Selected nodes:** Green ring + shadow glow effect
 - 🔴 **Bottlenecks:** Red border + red indicator dot
 - 🟡 **Issues:** Yellow border + yellow indicator dot
@@ -55,16 +62,19 @@ const handleSelectionChange = useCallback((params: { nodes: Node[]; edges: Edge[
 ### 3. **Selected Nodes Display in Chat UI**
 
 **Files Modified:**
+
 - `src/components/ChatInterface.tsx` - Added selected node chips display
 
 **What It Does:**
+
 - Displays selected nodes as chips above the chat input
 - Shows node labels in green-themed chips
 - Displays count of selected nodes
 - Updates in real-time as selection changes
 
 **UI Example:**
-```
+
+```text
 ┌─────────────────────────────────┐
 │ [Start Process] [Approval] 2 selected │
 │ ─────────────────────────────── │
@@ -77,15 +87,18 @@ const handleSelectionChange = useCallback((params: { nodes: Node[]; edges: Edge[
 ### 4. **Selection-Aware AI Context**
 
 **Files Modified:**
+
 - `src/index.ts` - Updated API endpoint to accept `selectedNodeIds`
 - `src/components/ChatInterface.tsx` - Sends `selectedNodeIds` in API requests
 
 **What It Does:**
+
 - Passes selected node IDs to the AI along with user's message
 - AI receives explicit context about which nodes user is referring to
 - Enables natural language like "make this red" or "mark these as bottlenecks"
 
 **API Request Structure:**
+
 ```json
 {
   "prompt": "Make this red",
@@ -95,7 +108,8 @@ const handleSelectionChange = useCallback((params: { nodes: Node[]; edges: Edge[
 ```
 
 **AI Context Message:**
-```
+
+```text
 User Request: Make this red
 
 ⭐ SELECTED NODES (user is referring to these): Start Process, Approval (IDs: 1, 3)
@@ -108,22 +122,26 @@ Current Graph Context: {...}
 ### 5. **Enhanced AI System Prompt**
 
 **Files Modified:**
+
 - `src/index.ts` - Completely rewrote `SYSTEM_PROMPT`
 
 **What It Does:**
+
 - Teaches AI to understand natural language node references
 - Explains node metadata structure (status, color, issueDetails)
 - Provides examples of user intents and expected responses
 - Defines rules for modifying selected vs. all nodes
 
 **Natural Language Understanding:**
+
 - "this" / "these" → Refers to selected nodes
 - "the approval step" → Finds node by label
 - "the bottleneck" → Finds node by status
 - "all nodes" / "everything" → Applies to entire graph
 
 **Examples:**
-```
+
+```text
 User: "Make this red" + Selected: ["1"]
 → AI sets node 1's color to "#ef4444"
 
@@ -136,9 +154,11 @@ User: "Mark the approval step as a bottleneck"
 ### 6. **Extended Type Definitions**
 
 **Files Modified:**
+
 - `src/types/process.ts` - Extended `ProcessNode` interface
 
 **What Was Added:**
+
 ```typescript
 export type NodeStatus = 'normal' | 'bottleneck' | 'issue' | 'complete';
 
@@ -157,12 +177,14 @@ export interface ProcessNode extends Node {
 
 ## 🧪 Testing
 
-### Test Files Created:
+### Test Files Created
+
 - `tests/unit.test.ts` - Unit tests (11 tests, all passing ✅)
 - `tests/phase1.test.ts` - E2E tests with Stagehand (9 comprehensive tests)
 - `tests/README.md` - Complete testing documentation
 
-### Test Coverage:
+### Test Coverage
+
 - ✅ Type definitions and data structures
 - ✅ Node selection logic
 - ✅ API request construction
@@ -174,7 +196,8 @@ export interface ProcessNode extends Node {
 - ✅ Status indicators
 - ✅ Node preservation during modifications
 
-### Run Tests:
+### Run Tests
+
 ```bash
 # Unit tests (fast, no server required)
 bun run test:unit
@@ -209,14 +232,16 @@ bun run test:watch
 
 ## 🎨 User Experience Improvements
 
-### Before Phase 1:
+### Before Phase 1
+
 - ❌ No way to tell AI which specific nodes to modify
 - ❌ AI had to guess from ambiguous language
 - ❌ All nodes looked the same (no status indicators)
 - ❌ No visual feedback for selection
 - ❌ Couldn't identify bottlenecks or issues visually
 
-### After Phase 1:
+### After Phase 1
+
 - ✅ Select nodes and say "make this red" - AI knows exactly what you mean
 - ✅ Visual indicators for bottlenecks (red), issues (yellow), completed (green)
 - ✅ Green glow effect on selected nodes
@@ -228,7 +253,7 @@ bun run test:watch
 
 ## 🔄 Data Flow
 
-```
+```text
 User selects node on canvas
     ↓
 App.tsx updates selectedNodeIds state
@@ -253,21 +278,25 @@ Canvas updates with red node
 ## 🚀 How to Use Phase 1 Features
 
 ### Example 1: Change Node Color
+
 1. Click a node on the canvas (see green glow)
 2. Type in chat: "Make this blue"
 3. AI changes selected node to blue
 
 ### Example 2: Mark Bottleneck
+
 1. Click a node
 2. Type: "This is a bottleneck"
 3. Node shows red border + red indicator dot
 
 ### Example 3: Multi-Node Edit
+
 1. Shift+Click multiple nodes
 2. Type: "Mark these as complete"
 3. All selected nodes show green border + green dots
 
 ### Example 4: Find Node by Name
+
 1. Don't select anything
 2. Type: "Mark the approval step as an issue"
 3. AI finds node with "approval" in label, marks it yellow
@@ -277,6 +306,7 @@ Canvas updates with red node
 ## 📁 Files Changed Summary
 
 **New Files:**
+
 - `src/components/CustomNode.tsx`
 - `tests/unit.test.ts`
 - `tests/phase1.test.ts`
@@ -284,6 +314,7 @@ Canvas updates with red node
 - `PHASE1_FEATURES.md` (this file)
 
 **Modified Files:**
+
 - `src/App.tsx` - Selection state management
 - `src/components/ProcessMap.tsx` - Custom node registration + selection handler
 - `src/components/ChatInterface.tsx` - Selected nodes display + API integration
@@ -300,17 +331,20 @@ Canvas updates with red node
 ### 5. **E2E Testing with Playwright**
 
 **Files Modified:**
+
 - `tests/phase1.test.ts` - Rewritten with Playwright
 - `package.json` - Replaced Stagehand with Playwright
 - `.github/workflows/ci.yml` - Added Playwright browser installation
 
 **What It Does:**
+
 - E2E tests using Playwright (no API keys required!)
 - Tests all Phase 1 features in real browser
 - Faster and more reliable than AI-based testing
 - Runs in CI/CD pipeline automatically
 
 **Test Coverage:**
+
 - ✅ Application loads successfully
 - ✅ Initial process node displays
 - ✅ Input field and send button present
@@ -323,15 +357,18 @@ Canvas updates with red node
 ### 6. **UI Polish: Clean Node Styling**
 
 **Files Modified:**
+
 - `src/index.css` - Added React Flow node background override
 
 **What It Does:**
+
 - Hides React Flow's default node wrapper background
 - Shows only custom node styling
 - Clean, professional appearance
 - No confusing double-box effect
 
 **CSS Added:**
+
 ```css
 .react-flow__node {
   background: transparent !important;
@@ -369,6 +406,17 @@ Canvas updates with red node
 
 ---
 
+## 🔮 Future Capabilities (Roadmap Alignment)
+
+- **Process simulation & what-if analysis** - Scenario runner with cost, time, resource utilization, and ROI scoring to compare multiple paths before rollout
+- **AI automation go-live package** - Prebuilt templates, guardrails, and checklists to reach production-grade agents/assistants in ~7 weeks
+- **Persona-specific experiences** - Tailored UI presets for ops analysts, frontline agents, and exec dashboards (filters, KPIs, and permissions per persona)
+- **Cross-tool imports** - Ingestion for BPMN/Visio/CSV to seed maps from existing diagrams and keep IDs stable for change tracking
+- **Bottleneck/ROI insights** - Automated bottleneck detection plus efficiency and cost deltas between current vs. proposed processes
+- **As-is vs. to-be modeling** - Parallel baseline/target views to map current state, apply proposed changes, and compare impact
+
+---
+
 ## 🐛 Known Issues
 
 None at this time. All Phase 1 features are working as expected.
@@ -377,17 +425,20 @@ None at this time. All Phase 1 features are working as expected.
 
 ## 💡 Technical Notes
 
-### Performance Considerations:
+### Performance Considerations
+
 - `nodeTypes` is memoized to prevent unnecessary re-renders
 - Selection state uses `useCallback` for optimization
 - Custom node component uses `memo` for React optimization
 
-### Browser Compatibility:
+### Browser Compatibility
+
 - E2E tested in Chromium (via Playwright)
 - Should work in all modern browsers (Chrome, Firefox, Safari, Edge)
 - Playwright tests run in headless mode for CI/CD
 
-### AI Model:
+### AI Model
+
 - Using Google Gemini Flash (fastest model)
 - JSON mode enabled (`responseMimeType: "application/json"`)
 - System prompt optimized for structured output

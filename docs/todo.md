@@ -11,6 +11,7 @@
 **Status:** COMPLETE
 
 ### Fixes
+
 - [x] Backspace/Delete keys not working in chat input
 - [x] SSE parsing error for edges spanning multiple chunks
 - [x] Diamond node edge routing (sourceHandle for left/right branches)
@@ -22,11 +23,14 @@
 **Priority:** CRITICAL - Solves regeneration problem
 
 ### Decision: Intent-Based Mode Switching ✅
+
 Chose hybrid approach with AI determining "create" vs "update" mode:
+
 - **Create mode**: Replaces entire graph (new process requests)
 - **Update mode**: Merges changes with existing nodes (modifications, color changes, status updates)
 
 ### Implementation
+
 - [x] Update AI system prompt with mode indicator format
 - [x] Add mode detection in system prompt rules
 - [x] Create `mergeNodes` utility function in ChatInterface
@@ -35,6 +39,7 @@ Chose hybrid approach with AI determining "create" vs "update" mode:
 - [x] Progressive merge updates during streaming
 
 ### Testing ✅
+
 - [x] Unit tests for `mergeNodes()` function (8 tests)
 - [x] Mode detection logic tests (2 tests)
 - [x] NDJSON streaming format tests (5 tests)
@@ -49,7 +54,8 @@ Chose hybrid approach with AI determining "create" vs "update" mode:
 
 **Status:** COMPLETE - All tests passing
 
-### Implementation
+### Implementation 2
+
 - [x] SQLite database schema (`processxy.db`)
 - [x] `maps` table with id, name, nodes (JSON), edges (JSON), timestamps
 - [x] CRUD API endpoints (`/api/maps`, `/api/maps/:id`, `/api/maps/recent`)
@@ -87,6 +93,7 @@ Chose hybrid approach with AI determining "create" vs "update" mode:
 ## Completed ✅
 
 ### Phase 1: Core Streaming & Edges
+
 - [x] Implement streaming for progressive node rendering
 - [x] Fix NDJSON parser with brace-counting
 - [x] Research fine-grained update strategies
@@ -98,6 +105,7 @@ Chose hybrid approach with AI determining "create" vs "update" mode:
 - [x] Fix marker type normalization (lowercase)
 
 ### Phase 2: Node Shapes
+
 - [x] Implement DiamondNode for decision points
 - [x] Implement OvalNode for start/end nodes
 - [x] Implement RectangleNode for process steps
@@ -107,6 +115,7 @@ Chose hybrid approach with AI determining "create" vs "update" mode:
 - [x] Update ProcessNode type to include outputCount
 
 ### Infrastructure
+
 - [x] Context menu for node actions (status, color, delete, duplicate)
 - [x] Auto-layout with Dagre
 - [x] Undo/redo history hook
@@ -141,7 +150,7 @@ Chose hybrid approach with AI determining "create" vs "update" mode:
 
 Use this to test all features:
 
-```
+```text
 Create a customer approval process with these steps:
 1. Customer submits application (start)
 2. Review application
@@ -154,6 +163,7 @@ Make sure it has smooth curved edges with arrows, and label the decision branche
 ```
 
 Expected results:
+
 - ✅ Bezier edges (smooth curves)
 - ✅ Arrow markers (25px, visible)
 - ✅ Yes/No labels on decision branches
@@ -165,10 +175,10 @@ Expected results:
 
 ## Research Resources
 
-- React Flow docs: https://reactflow.dev
-- Marker types: https://reactflow.dev/api-reference/types/marker-type
-- Edge markers: https://reactflow.dev/api-reference/types/edge-marker
-- Edge API: https://reactflow.dev/api-reference/types/edge
-- Examples: https://reactflow.dev/examples/edges/markers
-- RFC 6902 (JSON Patch): https://datatracker.ietf.org/doc/html/rfc6902
-- Aider edit formats: https://aider.chat/docs/more/edit-formats.html
+- React Flow docs: <https://reactflow.dev>
+- Marker types: <https://reactflow.dev/api-reference/types/marker-type>
+- Edge markers: <https://reactflow.dev/api-reference/types/edge-marker>
+- Edge API: <https://reactflow.dev/api-reference/types/edge>
+- Examples: <https://reactflow.dev/examples/edges/markers>
+- RFC 6902 (JSON Patch): <https://datatracker.ietf.org/doc/html/rfc6902>
+- Aider edit formats: <https://aider.chat/docs/more/edit-formats.html>
