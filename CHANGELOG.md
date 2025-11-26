@@ -4,6 +4,25 @@ All notable changes to ProcessXY will be documented in this file.
 
 ## [Unreleased]
 
+### Auto-Layout Fix
+
+**Fixed:**
+- Centered spine alignment in auto-layout (Ctrl+L) now works correctly
+- Node widths in `autoLayout.ts` now match actual CSS dimensions:
+  - Diamond: 100px → 160px (matches `DiamondNode.tsx` width)
+  - Oval: 140px → 160px (matches `OvalNode.tsx` min-w-[160px])
+  - Rectangle: 180px → 150px (matches `RectangleNode.tsx` min-w-[150px])
+
+**Added:**
+- Layout verification tests (`tests/layout.test.ts`)
+- Debug console output showing node positions and visual centers
+- Layout preset system for experimenting with spacing configurations
+
+**Technical:**
+- Custom centered-spine layout algorithm (replaced Dagre)
+- Union-Find algorithm for handling disconnected subgraphs
+- Parameterized layout with `LayoutParams` interface
+
 ## [0.3.0] - 2025-11-25
 
 ### Phase 4: SQLite Persistence & Bug Fixes
