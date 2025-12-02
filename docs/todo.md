@@ -42,18 +42,3 @@
 | `src/utils/testData.ts` | Test nodes and edges |
 | `src/db/maps.ts` | SQLite persistence |
 
----
-
-## Test Prompt
-
-```text
-Create a customer approval process with these steps:
-1. Customer submits application (start)
-2. Review application
-3. Check credit score (decision point - yes/no branches)
-4. If yes: Approve application
-5. If no: Request additional documents, then return to review
-6. Final approval (end)
-
-Make sure it has smooth curved edges with arrows, and label the decision branches clearly.
-```
