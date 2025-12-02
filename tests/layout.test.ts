@@ -5,31 +5,52 @@ import { getLayoutedElements } from "../src/utils/autoLayout";
 /**
  * Layout verification tests
  * These tests verify that node positions are mathematically correct
+ *
+ * Layout uses height-aware vertical positioning:
+ * - Y position is calculated based on cumulative node heights + vertical gaps
+ * - This ensures proper spacing after tall nodes (like diamonds at 160px)
  */
 
 // Layout constants (must match testData.ts and autoLayout.ts)
 const CENTER_X = 300;
-const LEVEL_HEIGHT = 130;
 const BRANCH_OFFSET = 200;
+const VERTICAL_GAP = 60;
 
-// Node widths (MUST match actual CSS sizes!)
+// Node dimensions (MUST match actual CSS sizes!)
 const NODE_WIDTHS: Record<string, number> = {
 	oval: 160,     // OvalNode min-w-[160px]
 	default: 150,  // RectangleNode min-w-[150px]
 	diamond: 160,  // DiamondNode width: 160px
 };
 
-function getExpectedCenterX(nodeType: string): number {
-	const width = NODE_WIDTHS[nodeType] || 180;
-	return CENTER_X - width / 2;
-}
+const NODE_HEIGHTS: Record<string, number> = {
+	oval: 45,      // OvalNode approx height
+	default: 50,   // RectangleNode approx height
+	diamond: 160,  // DiamondNode height: 160px
+};
+
+// Pre-calculated Y positions based on cumulative heights + gaps
+// Level 0: y = 0
+// Level 1: y = 45 (oval) + 60 (gap) = 105
+// Level 2: y = 105 + 50 (rect) + 60 (gap) = 215
+// Level 3: y = 215 + 160 (diamond) + 60 (gap) = 435  <- Branch nodes properly spaced after diamond!
+// Level 4: y = 435 + 50 (rect) + 60 (gap) = 545
+// Level 5: y = 545 + 50 (rect) + 60 (gap) = 655
+const LEVEL_Y: Record<number, number> = {
+	0: 0,
+	1: 105,
+	2: 215,
+	3: 435,
+	4: 545,
+	5: 655,
+};
 
 describe("Layout Math Verification", () => {
-	test("Print expected positions for main flow", () => {
-		console.log("\n=== EXPECTED CENTERED POSITIONS ===");
+	test("Print expected positions for main flow (height-aware)", () => {
+		console.log("\n=== EXPECTED CENTERED POSITIONS (HEIGHT-AWARE LAYOUT) ===");
 		console.log(`CENTER_X = ${CENTER_X}`);
-		console.log(`LEVEL_HEIGHT = ${LEVEL_HEIGHT}`);
 		console.log(`BRANCH_OFFSET = ${BRANCH_OFFSET}`);
+		console.log(`VERTICAL_GAP = ${VERTICAL_GAP}`);
 		console.log("");
 
 		const mainFlow = [
@@ -43,10 +64,11 @@ describe("Layout Math Verification", () => {
 		];
 
 		console.log("Node positions should be:");
-		console.log("─".repeat(70));
+		console.log("─".repeat(80));
 
 		for (const node of mainFlow) {
 			const width = NODE_WIDTHS[node.type];
+			const height = NODE_HEIGHTS[node.type];
 			let expectedX: number;
 
 			if (node.branch === "center") {
@@ -57,42 +79,44 @@ describe("Layout Math Verification", () => {
 				expectedX = CENTER_X + BRANCH_OFFSET - width / 2;
 			}
 
-			const expectedY = node.level * LEVEL_HEIGHT;
+			const expectedY = LEVEL_Y[node.level];
 			const visualCenterX = expectedX + width / 2;
 
 			console.log(
 				`${node.id}. ${node.label.padEnd(20)} | ` +
 				`type: ${node.type.padEnd(7)} | ` +
-				`width: ${width} | ` +
+				`h: ${height.toString().padStart(3)} | ` +
 				`x: ${expectedX.toString().padStart(4)} | ` +
 				`y: ${expectedY.toString().padStart(4)} | ` +
 				`visual center: ${visualCenterX}`
 			);
 		}
 
-		console.log("─".repeat(70));
+		console.log("─".repeat(80));
 		console.log("\nAll centered nodes should have visual center at x=300");
-		console.log("Left branch should have visual center at x=100");
-		console.log("Right branch should have visual center at x=500\n");
+		console.log("Left branch nodes should have visual center at x=100");
+		console.log("Right branch nodes should have visual center at x=500");
+		console.log("Branch nodes (level 3) are properly spaced 200px below the diamond (160px + 40px gap)\n");
 
 		expect(true).toBe(true); // Just to make the test pass
 	});
 
-	test("Verify testData.ts positions match expected", () => {
+	test("Verify testData.ts positions match expected (height-aware)", () => {
 		console.log("\n=== VERIFYING TEST DATA POSITIONS ===\n");
 
 		const mainFlowIds = ["1", "2", "3", "4", "5", "6", "7"];
 		const mainFlowNodes = TEST_NODES.filter((n) => mainFlowIds.includes(n.id));
 
-		// With correct widths: oval=160, rect=150, diamond=160
+		// Height-aware positions: Y is based on cumulative heights + gaps
+		// Nodes follow their parent branch (happy path continues on right branch)
 		const expectedPositions: Record<string, { x: number; y: number; visualCenterX: number }> = {
-			"1": { x: 220, y: 0, visualCenterX: 300 },      // Start (oval 160, centered): 300-80=220
-			"2": { x: 225, y: 130, visualCenterX: 300 },    // Review (rect 150, centered): 300-75=225
-			"3": { x: 220, y: 260, visualCenterX: 300 },    // Credit OK (diamond 160, centered): 300-80=220
-			"4": { x: 25, y: 390, visualCenterX: 100 },     // Request Docs (rect 150, left): 100-75=25
-			"5": { x: 425, y: 390, visualCenterX: 500 },    // Approve (rect 150, right): 500-75=425
-			"6": { x: 225, y: 520, visualCenterX: 300 },    // Send Notif (rect 150, centered): 300-75=225
-			"7": { x: 220, y: 650, visualCenterX: 300 },    // End (oval 160, centered): 300-80=220
+			"1": { x: 220, y: LEVEL_Y[0], visualCenterX: 300 },   // Start (oval 160, centered): 300-80=220
+			"2": { x: 225, y: LEVEL_Y[1], visualCenterX: 300 },   // Review (rect 150, centered): 300-75=225
+			"3": { x: 220, y: LEVEL_Y[2], visualCenterX: 300 },   // Decision (diamond 160, centered): 300-80=220
+			"4": { x: 25, y: LEVEL_Y[3], visualCenterX: 100 },    // Left branch node (rect 150): 100-75=25
+			"5": { x: 425, y: LEVEL_Y[3], visualCenterX: 500 },   // Right branch node (rect 150): 500-75=425
+			"6": { x: 425, y: LEVEL_Y[4], visualCenterX: 500 },   // Send Notif follows Approve: 500-75=425
+			"7": { x: 420, y: LEVEL_Y[5], visualCenterX: 500 },   // End follows Send Notif: 500-80=420
 		};
 
 		let allCorrect = true;
@@ -121,7 +145,7 @@ describe("Layout Math Verification", () => {
 		expect(allCorrect).toBe(true);
 	});
 
-	test("Verify auto-layout produces centered positions", async () => {
+	test("Verify auto-layout produces parent-aligned positions", async () => {
 		console.log("\n=== VERIFYING AUTO-LAYOUT OUTPUT ===\n");
 
 		// Use only main flow nodes and edges (exclude the Priority/Risk examples)
@@ -133,15 +157,17 @@ describe("Layout Math Verification", () => {
 
 		const { nodes: layoutedNodes } = await getLayoutedElements(mainNodes, mainEdges);
 
-		// Expected visual centers
+		// Expected visual centers - nodes now align with their parent branch
+		// Send Notification (6) follows Approve Application (5) which is on right branch
+		// End (7) follows Send Notification (6) which is now on right branch
 		const expectedVisualCenters: Record<string, number> = {
 			"1": 300, // Start - centered
 			"2": 300, // Review - centered
-			"3": 300, // Credit OK - centered
-			"4": 100, // Request Docs - left (300 - 200)
-			"5": 500, // Approve - right (300 + 200)
-			"6": 300, // Send Notif - centered
-			"7": 300, // End - centered
+			"3": 300, // Decision - centered
+			"4": 100, // Request Docs - left branch
+			"5": 500, // Approve - right branch
+			"6": 500, // Send Notif - follows Approve (parent is off-center)
+			"7": 500, // End - follows Send Notif (parent is off-center)
 		};
 
 		let allCorrect = true;

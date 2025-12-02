@@ -82,26 +82,47 @@ bun run ci
 - **UI Components:** Radix UI + Tailwind CSS
 - **Process Visualization:** XyFlow (React Flow)
 - **AI:** Google Gemini API
+- **Database:** SQLite (via bun:sqlite)
 - **Testing:** Bun Test + Playwright
 - **Build:** Bun's built-in bundler
 
 ### Project Structure
 
-```test
+```text
 src/
 ├── components/          # React components
-│   ├── ChatInterface.tsx
-│   ├── ProcessMap.tsx
-│   └── CustomNode.tsx
-├── types/              # TypeScript types
-├── index.ts            # Server + API
-└── index.css           # Global styles
+│   ├── ChatInterface.tsx    # Chat UI + streaming consumer
+│   ├── ProcessMap.tsx       # React Flow wrapper
+│   ├── MapsPanel.tsx        # Map selector dropdown
+│   ├── nodes/               # Custom node components
+│   │   ├── DiamondNode.tsx  # Decision nodes
+│   │   ├── OvalNode.tsx     # Start/End nodes
+│   │   └── RectangleNode.tsx # Process steps
+│   └── edges/               # Custom edge components
+│       └── SelfConnectingEdge.tsx  # Loop-back flows
+├── db/                      # Database
+│   └── maps.ts              # SQLite operations
+├── hooks/                   # React hooks
+│   ├── usePersistence.ts    # Auto-save, load, map management
+│   └── useHistory.ts        # Undo/redo
+├── utils/                   # Utilities
+│   ├── autoLayout.ts        # Height-aware centered-spine layout
+│   └── testData.ts          # Test nodes and edges
+├── types/                   # TypeScript types
+├── index.ts                 # Server + API + system prompt
+└── index.css                # Global styles
 
 tests/
-├── unit.test.ts        # Unit tests
-└── phase1.test.ts      # E2E tests
+├── layout.test.ts      # Layout verification tests
+├── integration.test.ts # API integration tests
+├── phase1.test.ts      # E2E tests (Playwright)
+└── *.test.ts           # Other unit tests
 
-.github/workflows/      # CI/CD automation
+docs/
+├── todo.md                    # Roadmap & backlog
+├── development.md             # This file
+├── process-mapping-standards.md # Node types, edges, layout rules
+└── archive/                   # Historical docs
 ```
 
 ### Key Design Decisions
@@ -243,8 +264,8 @@ bunx playwright install chromium
 
 ### Dev server not starting?
 
-- Check if port 3000 is available
-- Kill any process using port 3000: `lsof -ti:3000 | xargs kill`
+- Check if port 4321 is available
+- Kill any process using port 4321: `lsof -ti:4321 | xargs kill`
 
 ## 📚 Resources
 

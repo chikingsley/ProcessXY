@@ -1,6 +1,7 @@
 import {
 	BaseEdge,
 	BezierEdge,
+	EdgeLabelRenderer,
 	type EdgeProps,
 	useInternalNode,
 } from "@xyflow/react";
@@ -94,38 +95,37 @@ export function SelfConnectingEdge(props: EdgeProps) {
 
 				return (
 					<>
-						<path
+						<BaseEdge
 							id={id}
-							className={`react-flow__edge-path ${animated ? "animated" : ""}`}
-							d={edgePath}
+							path={edgePath}
 							markerEnd={markerEnd}
 							markerStart={markerStart}
 							style={style}
 						/>
 						{label && (
-							<g>
-								{labelShowBg && (
-									<rect
-										x={labelX - 20}
-										y={labelY - 10}
-										width={40}
-										height={20}
-										rx={4}
-										fill="#ffffff"
-										className="react-flow__edge-label-bg"
-									/>
-								)}
-								<text
-									x={labelX}
-									y={labelY}
-									className="react-flow__edge-label"
-									style={labelStyle}
-									textAnchor="middle"
-									dominantBaseline="middle"
+							<EdgeLabelRenderer>
+								<div
+									style={{
+										position: "absolute",
+										transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+										pointerEvents: "all",
+									}}
+									className="nodrag nopan"
 								>
-									{label}
-								</text>
-							</g>
+									{labelShowBg && (
+										<span
+											style={{
+												position: "absolute",
+												inset: "-4px -8px",
+												background: "#ffffff",
+												borderRadius: "4px",
+												zIndex: -1,
+											}}
+										/>
+									)}
+									<span style={labelStyle}>{label}</span>
+								</div>
+							</EdgeLabelRenderer>
 						)}
 					</>
 				);

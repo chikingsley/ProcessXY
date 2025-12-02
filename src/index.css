@@ -26,6 +26,13 @@
     box-shadow: none !important;
   }
 
+  /* Hide the blue bounding box that appears around multiple selected nodes */
+  .react-flow__nodesselection-rect,
+  .react-flow__nodesselection {
+    background: transparent !important;
+    border: none !important;
+  }
+
   /* Ensure node content is fully visible */
   .react-flow__node-default,
   .react-flow__node-oval,

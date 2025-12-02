@@ -126,27 +126,35 @@ EDGE TYPE RULES (CRITICAL):
    - Example: If the "No" branch of a decision loops back, use sourceHandle: "left", targetHandle: "left"
    - Set "animated": true on loop edges to show they're special flows
 
-LAYOUT RULES (CENTERED SPINE):
+LAYOUT RULES (CENTERED SPINE WITH HEIGHT-AWARE SPACING):
 Use a centered vertical spine with symmetric horizontal branching:
 
-1. Define a CENTER_X (e.g., 300) - this is the main vertical axis
-2. Define LEVEL_HEIGHT (e.g., 120) - consistent vertical spacing between levels
-3. Define BRANCH_OFFSET (e.g., 180) - distance from center to branch nodes
+1. Define CENTER_X (e.g., 300) - this is the main vertical axis
+2. Define VERTICAL_GAP (e.g., 40) - minimum gap between nodes
+3. Define BRANCH_OFFSET (e.g., 200) - distance from center to branch nodes
 
-POSITIONING:
+TERMINOLOGY:
+- "Decision node": Diamond-shaped node representing a conditional branch point
+- "Branch nodes": Nodes that follow a decision node (the outcomes of the decision)
+
+HORIZONTAL POSITIONING:
 - Main flow nodes (Start, steps, End): Place on CENTER_X
 - Diamond decisions: Place on CENTER_X
-- Decision branches: Place symmetrically at CENTER_X ± BRANCH_OFFSET
-  - "No"/left branch: x = CENTER_X - BRANCH_OFFSET
-  - "Yes"/right branch: x = CENTER_X + BRANCH_OFFSET
+- Branch nodes: Place symmetrically at CENTER_X ± BRANCH_OFFSET
+  - "No"/left branch node: x = CENTER_X - BRANCH_OFFSET
+  - "Yes"/right branch node: x = CENTER_X + BRANCH_OFFSET
 - Happy path continuation: Return to CENTER_X after branches merge
 
-VERTICAL LEVELS:
-- Level 0 (y=0): Start node
-- Level 1 (y=LEVEL_HEIGHT): First process step
-- Level 2 (y=LEVEL_HEIGHT*2): Decision diamond
-- Level 3 (y=LEVEL_HEIGHT*3): Decision branch targets
-- Level 4+ continue incrementing
+VERTICAL POSITIONING (height-aware):
+Y positions are calculated based on cumulative node heights + gaps.
+Node heights: Oval=45px, Rectangle=50px, Diamond=160px
+
+Example positions:
+- Level 0 (Start oval): y = 0
+- Level 1 (Process rect): y = 85 (45 + 40 gap)
+- Level 2 (Decision diamond): y = 175 (85 + 50 + 40)
+- Level 3 (Branch nodes): y = 375 (175 + 160 diamond + 40 gap)
+- Level 4+: Continue adding (prev_height + 40)
 
 EDGE STYLING FOR SECONDARY PATHS:
 - Loop/retry edges should use "strokeDasharray": "5,5" to show they're exception paths

@@ -28,21 +28,21 @@ function getNodeHeight(type?: string): number {
 export interface LayoutParams {
 	name: string;
 	centerX: number;
-	levelHeight: number;
+	verticalGap: number; // Gap between bottom of one node and top of next
 	branchOffset: number;
 	subgraphGap: number;
 }
 
 // Single preset for debugging
 export const LAYOUT_PRESETS: LayoutParams[] = [
-	{ name: "Test", centerX: 300, levelHeight: 130, branchOffset: 200, subgraphGap: 300 },
+	{ name: "Default", centerX: 300, verticalGap: 60, branchOffset: 200, subgraphGap: 300 },
 ];
 
 // Default layout constants (used when no params provided)
 const CENTER_X = 300; // Center of first subgraph
-const LEVEL_HEIGHT = 130;
 const BRANCH_OFFSET = 200;
 const SUBGRAPH_GAP = 150; // Gap between disconnected subgraphs
+const VERTICAL_GAP = 60; // Minimum gap between bottom of one node and top of next
 
 /**
  * Centered-spine layout for process maps
@@ -59,7 +59,7 @@ export async function getLayoutedElements(
 ): Promise<{ nodes: Node[]; edges: Edge[]; presetName: string }> {
 	// Use provided params or defaults
 	const centerX = params?.centerX ?? CENTER_X;
-	const levelHeight = params?.levelHeight ?? LEVEL_HEIGHT;
+	const verticalGap = params?.verticalGap ?? VERTICAL_GAP;
 	const branchOffset = params?.branchOffset ?? BRANCH_OFFSET;
 	const subgraphGap = params?.subgraphGap ?? SUBGRAPH_GAP;
 	const presetName = params?.name ?? "Default";
@@ -111,7 +111,7 @@ export async function getLayoutedElements(
 			childrenOf,
 			parentOf,
 			subgraphCenterX,
-			levelHeight,
+			verticalGap,
 			branchOffset,
 		);
 
@@ -182,7 +182,7 @@ function layoutSubgraph(
 	childrenOf: Map<string, string[]>,
 	parentOf: Map<string, string[]>,
 	startX: number,
-	levelHeight: number = LEVEL_HEIGHT,
+	verticalGap: number = VERTICAL_GAP,
 	branchOffset: number = BRANCH_OFFSET,
 ): { layoutedNodes: Node[]; width: number } {
 	if (nodes.length === 0) {
@@ -243,12 +243,37 @@ function layoutSubgraph(
 	// Use startX directly as the center point (it's passed as the desired center)
 	const centerX = startX;
 
+	// Calculate Y positions based on cumulative heights (accounts for tall diamond nodes)
+	// This ensures proper spacing after decision nodes (diamonds are 160px tall)
+	const maxLevel = Math.max(...Array.from(nodeLevel.values()));
+	const levelY = new Map<number, number>();
+	let currentY = 0;
+
+	for (let level = 0; level <= maxLevel; level++) {
+		levelY.set(level, currentY);
+
+		// Find the tallest node at this level to determine spacing to next level
+		const nodesAtThisLevel = levelNodes.get(level) || [];
+		let maxHeightAtLevel = 0;
+		for (const node of nodesAtThisLevel) {
+			const height = getNodeHeight(node.type);
+			maxHeightAtLevel = Math.max(maxHeightAtLevel, height);
+		}
+
+		// Next level starts after: current node height + vertical gap
+		currentY += maxHeightAtLevel + verticalGap;
+	}
+
 	// Position nodes
 	console.log("\n=== LAYOUT DEBUG ===");
 	console.log(`centerX = ${centerX}`);
-	console.log(`levelHeight = ${levelHeight}`);
 	console.log(`branchOffset = ${branchOffset}`);
+	console.log(`VERTICAL_GAP = ${VERTICAL_GAP}`);
+	console.log("Level Y positions:", Object.fromEntries(levelY));
 	console.log("");
+
+	// First pass: calculate positions, tracking node X positions for parent lookup
+	const nodePositions = new Map<string, number>(); // nodeId -> visualCenterX
 
 	const layoutedNodes = nodes.map((node) => {
 		const level = nodeLevel.get(node.id) ?? 0;
@@ -258,30 +283,66 @@ function layoutSubgraph(
 		const nodeWidth = getNodeWidth(node.type);
 
 		let x: number;
+		let visualCenterX: number;
 
 		if (nodeCount === 1) {
-			// Single node at level - center it
-			x = centerX - nodeWidth / 2;
+			// Single node at level - check if it should align with parent branch
+			const parents = parentOf.get(node.id) || [];
+			const parentInSubgraph = parents.filter((p) => subgraphIds.has(p));
+
+			if (parentInSubgraph.length === 1) {
+				// Single parent - align with parent's X position
+				const parentX = nodePositions.get(parentInSubgraph[0]);
+				if (parentX !== undefined && Math.abs(parentX - centerX) > 50) {
+					// Parent is off-center (part of a branch) - align under parent
+					visualCenterX = parentX;
+					x = visualCenterX - nodeWidth / 2;
+				} else {
+					// Parent is centered - stay centered
+					x = centerX - nodeWidth / 2;
+					visualCenterX = centerX;
+				}
+			} else if (parentInSubgraph.length > 1) {
+				// Multiple parents (merge point) - center between them
+				const parentXs = parentInSubgraph
+					.map((p) => nodePositions.get(p))
+					.filter((px): px is number => px !== undefined);
+				if (parentXs.length > 0) {
+					visualCenterX = parentXs.reduce((a, b) => a + b, 0) / parentXs.length;
+					x = visualCenterX - nodeWidth / 2;
+				} else {
+					x = centerX - nodeWidth / 2;
+					visualCenterX = centerX;
+				}
+			} else {
+				// No parents (root node) - center
+				x = centerX - nodeWidth / 2;
+				visualCenterX = centerX;
+			}
 		} else if (nodeCount === 2) {
-			// Two branches - place symmetrically at centerX ± branchOffset
+			// Two branch nodes - place symmetrically at centerX ± branchOffset
 			if (nodeIndex === 0) {
 				x = centerX - branchOffset - nodeWidth / 2;
 			} else {
 				x = centerX + branchOffset - nodeWidth / 2;
 			}
+			visualCenterX = x + nodeWidth / 2;
 		} else {
-			// 3+ nodes - spread evenly around center
+			// 3+ branch nodes - spread evenly around center
 			const totalSpan = (nodeCount - 1) * branchOffset;
 			const levelStartX = centerX - totalSpan / 2;
 			x = levelStartX + nodeIndex * branchOffset - nodeWidth / 2;
+			visualCenterX = x + nodeWidth / 2;
 		}
 
-		const y = level * levelHeight;
-		const visualCenterX = x + nodeWidth / 2;
+		// Store position for child nodes to reference
+		nodePositions.set(node.id, visualCenterX);
+
+		const y = levelY.get(level) ?? 0;
 
 		console.log(
 			`Node ${node.id} "${node.data.label}": ` +
-			`type=${node.type}, width=${nodeWidth}, ` +
+			`type=${node.type}, height=${getNodeHeight(node.type)}, ` +
 			`position.x=${x}, visualCenter=${visualCenterX}, y=${y}`
 		);
 

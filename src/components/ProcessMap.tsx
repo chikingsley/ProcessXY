@@ -13,6 +13,7 @@ import {
 	type OnSelectionChangeParams,
 	ReactFlow,
 	type ReactFlowInstance,
+	SelectionMode,
 } from "@xyflow/react";
 import { useCallback, useMemo, useState } from "react";
 import "@xyflow/react/dist/style.css";
@@ -166,6 +167,8 @@ export function ProcessMap({
 						},
 					}}
 					fitView
+					fitViewOptions={{ padding: 0.2 }}
+					selectionMode={SelectionMode.Partial}
 				>
 					<Controls>
 						{onAutoLayout && (

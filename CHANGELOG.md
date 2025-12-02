@@ -4,24 +4,38 @@ All notable changes to ProcessXY will be documented in this file.
 
 ## [Unreleased]
 
-### Auto-Layout Fix
-
-**Fixed:**
-- Centered spine alignment in auto-layout (Ctrl+L) now works correctly
-- Node widths in `autoLayout.ts` now match actual CSS dimensions:
-  - Diamond: 100px → 160px (matches `DiamondNode.tsx` width)
-  - Oval: 140px → 160px (matches `OvalNode.tsx` min-w-[160px])
-  - Rectangle: 180px → 150px (matches `RectangleNode.tsx` min-w-[150px])
+### Dev Control Panel & UX Improvements
 
 **Added:**
-- Layout verification tests (`tests/layout.test.ts`)
-- Debug console output showing node positions and visual centers
-- Layout preset system for experimenting with spacing configurations
+- **Dev Control Panel** - Collapsible floating panel (bottom-right) with:
+  - Test scenario selector (Simple Flow, Linear Process, Single Decision, Main Flow, Full Test)
+  - Live node positions display (toggle with Positions button)
+  - Node/edge count display
+  - Quick actions: Auto-layout, Clear map, Export JSON
+  - Keyboard shortcuts reference
+- **Parent-aligned positioning** - Nodes now align vertically with their parent branch instead of always returning to center
+- **Shift+drag selection** - Draw selection box to select multiple nodes
+- **Partial selection mode** - Nodes partially inside selection box are included
+
+**Fixed:**
+- **Proper spacing between decision nodes and branch nodes** - Layout now uses cumulative height calculation instead of fixed level heights. Diamond nodes (160px tall) now have proper 60px gap before branch nodes below them
+- **Selection bounding box hidden** - Blue box around selected nodes no longer appears
+- **SelfConnectingEdge selection issue** - Fixed edge rendering to use BaseEdge component, preventing selection box glitches
+- **Initial view fits all nodes** - Map now starts zoomed to show all nodes instead of zoomed in
+- Centered spine alignment in auto-layout (Ctrl+L) now works correctly
+- Node widths in `autoLayout.ts` now match actual CSS dimensions
+
+**Changed:**
+- **"Branch nodes" terminology** - Formal naming for nodes that follow decision nodes
+- Layout preset system with `verticalGap` parameter (replaces fixed `levelHeight`)
+- Default scenario changed to "Main Flow" (7-node flow without disconnected subgraphs)
 
 **Technical:**
+- Height-aware vertical positioning: Y = sum of previous node heights + gaps
+- Parent-aware horizontal positioning: Single-child nodes align with off-center parents
 - Custom centered-spine layout algorithm (replaced Dagre)
 - Union-Find algorithm for handling disconnected subgraphs
-- Parameterized layout with `LayoutParams` interface
+- SelfConnectingEdge uses BaseEdge and EdgeLabelRenderer for proper React Flow integration
 
 ## [0.3.0] - 2025-11-25
 

@@ -8,6 +8,7 @@ import {
 } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChatInterface } from "./components/ChatInterface";
+import { DevControlPanel } from "./components/DevControlPanel";
 import { MapsPanel } from "./components/MapsPanel";
 import { ProcessMap } from "./components/ProcessMap";
 import { useHistory } from "./hooks/useHistory";
@@ -17,10 +18,13 @@ import { getLayoutedElements, LAYOUT_PRESETS } from "./utils/autoLayout";
 import { TEST_EDGES, TEST_NODES } from "./utils/testData";
 import "./index.css";
 
-const initialNodes: Node[] = [
-	{ id: "1", position: { x: 250, y: 0 }, data: { label: "Start Process" } },
-];
-const initialEdges: Edge[] = [];
+// Use main flow (nodes 1-7) as initial state for development
+const initialNodes: Node[] = TEST_NODES.filter((n) => Number(n.id) <= 7);
+const initialEdges: Edge[] = TEST_EDGES.filter((e) => {
+	const sourceId = Number(e.source);
+	const targetId = Number(e.target);
+	return sourceId <= 7 && targetId <= 7;
+});
 
 export function App() {
 	const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -28,7 +32,6 @@ export function App() {
 	const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
 	const [fitViewFn, setFitViewFn] = useState<(() => void) | null>(null);
 	const [layoutPresetName, setLayoutPresetName] = useState<string | null>(null);
-	const initialLoadDone = useRef(false);
 	const layoutPresetIndex = useRef(0);
 
 	// Persistence hook for auto-save and map management
@@ -41,21 +44,6 @@ export function App() {
 		},
 	});
 
-	// Load most recent map on startup (once)
-	useEffect(() => {
-		if (initialLoadDone.current) return;
-		initialLoadDone.current = true;
-
-		const params = new URLSearchParams(window.location.search);
-		if (params.get("test") === "true") {
-			// Test mode - load test data
-			setNodes(TEST_NODES);
-			setEdges(TEST_EDGES);
-		} else {
-			// Normal mode - load most recent saved map
-			persistence.loadMostRecent();
-		}
-	}, [persistence.loadMostRecent, setNodes, setEdges]);
 
 	// Auto-save when nodes or edges change
 	useEffect(() => {
@@ -186,7 +174,7 @@ export function App() {
 
 		// Log to console for debugging
 		console.log(`Layout applied: "${presetName}" (${layoutPresetIndex.current + 1}/${LAYOUT_PRESETS.length})`);
-		console.log(`  centerX: ${preset?.centerX}, levelHeight: ${preset?.levelHeight}, branchOffset: ${preset?.branchOffset}`);
+		console.log(`  centerX: ${preset?.centerX}, verticalGap: ${preset?.verticalGap}, branchOffset: ${preset?.branchOffset}`);
 
 		// Cycle to next preset for next press
 		layoutPresetIndex.current = (layoutPresetIndex.current + 1) % LAYOUT_PRESETS.length;
@@ -207,6 +195,45 @@ export function App() {
 			}
 		}, 100);
 	}, [setNodes, setEdges, fitViewFn]);
+
+	// Load a test scenario (for DevControlPanel)
+	const handleLoadScenario = useCallback(
+		(scenarioNodes: Node[], scenarioEdges: Edge[]) => {
+			setNodes(scenarioNodes);
+			setEdges(scenarioEdges);
+			setTimeout(() => fitViewFn?.(), 100);
+		},
+		[setNodes, setEdges, fitViewFn],
+	);
+
+	// Clear map (for DevControlPanel)
+	const handleClearMap = useCallback(() => {
+		setNodes([]);
+		setEdges([]);
+	}, [setNodes, setEdges]);
+
+	// Export JSON (for DevControlPanel)
+	const handleExportJson = useCallback(() => {
+		const data = { nodes, edges };
+		const json = JSON.stringify(data, null, 2);
+		navigator.clipboard.writeText(json);
+		console.log("Exported to clipboard:", data);
+		alert("JSON copied to clipboard!");
+	}, [nodes, edges]);
+
+	// Show positions in console (for DevControlPanel)
+	const handleShowPositions = useCallback(() => {
+		console.log("\n=== CURRENT NODE POSITIONS ===");
+		for (const node of nodes) {
+			const visualCenterX = node.position.x + (node.type === "diamond" || node.type === "oval" ? 80 : 75);
+			console.log(
+				`${node.id}: "${node.data.label}" - ` +
+				`x=${Math.round(node.position.x)}, y=${Math.round(node.position.y)}, ` +
+				`visualCenter=${Math.round(visualCenterX)}`
+			);
+		}
+		console.log("=== END POSITIONS ===\n");
+	}, [nodes]);
 
 	// Keyboard shortcuts
 	const shortcuts = useMemo(
@@ -291,6 +318,19 @@ export function App() {
 					Layout: {layoutPresetName} ({layoutPresetIndex.current}/{LAYOUT_PRESETS.length})
 				</div>
 			)}
+
+			{/* Dev Control Panel */}
+			<DevControlPanel
+				onLoadScenario={handleLoadScenario}
+				onClearMap={handleClearMap}
+				onAutoLayout={handleAutoLayout}
+				onExportJson={handleExportJson}
+				onShowPositions={handleShowPositions}
+				currentNodeCount={nodes.length}
+				currentEdgeCount={edges.length}
+				currentNodes={nodes}
+			/>
+
 			<div className="w-[30%] min-w-[300px] max-w-[400px] h-full border-r border-border flex flex-col">
 				{/* Maps Panel Header */}
 				<div className="p-3 border-b border-border bg-muted/30">

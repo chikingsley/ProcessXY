@@ -1,7 +1,7 @@
 # ProcessXY: Process Mapping Standards
 
-**Version:** 1.0
-**Last Updated:** 2024-11-24
+**Version:** 1.1
+**Last Updated:** 2025-12-01
 
 This document defines the standards and conventions for process mapping in ProcessXY, based on industry best practices from BPMN, Value Stream Mapping, and standard flowchart conventions.
 
@@ -17,11 +17,16 @@ This document defines the standards and conventions for process mapping in Proce
 | **Diamond** | `diamond` | Decision point | Yes/No questions, routing, conditional logic |
 | **Oval** | `oval` | Start/End terminator | Process boundaries only |
 
+### Terminology
+
+- **Decision node**: A diamond-shaped node representing a conditional branch point
+- **Branch nodes**: The nodes that follow a decision node (the outcomes of the decision). These are typically rectangles representing the actions taken for each decision outcome (e.g., "Approve" vs "Reject")
+
 **Rules:**
 
 - Use `type: "oval"` for START and END nodes only
 - Use `type: "diamond"` for decision points (requires `outputCount` in data)
-- Use `type: "default"` (or omit type field) for all other process steps
+- Use `type: "default"` (or omit type field) for all other process steps, including branch nodes
 
 ---
 
@@ -228,33 +233,45 @@ This document defines the standards and conventions for process mapping in Proce
 
 ## Layout and Spacing
 
-### Vertical Spacing
+### Height-Aware Vertical Spacing
 
-- **Between levels:** 200-280px
-- **Start node:** y = 0
-- **Subsequent levels:** Increment by 200-280px
+The layout system uses **cumulative height calculation** to ensure proper spacing between nodes. This is especially important for decision nodes (diamonds), which are taller (160px) than other nodes.
 
-**Example:**
+**Layout Constants:**
+
+- `VERTICAL_GAP = 40` - Minimum gap between bottom of one node and top of the next
+- Node heights: Oval (45px), Rectangle (50px), Diamond (160px)
+
+**How Y positions are calculated:**
 
 ```text
-Level 1 (Start):     y = 0
-Level 2:             y = 200
-Level 3 (Decision):  y = 480
-Level 4 (Branches):  y = 760
+Level 0 (Start oval):     y = 0
+Level 1 (Process rect):   y = 45 + 40 = 85         (prev height + gap)
+Level 2 (Decision):       y = 85 + 50 + 40 = 175   (prev height + gap)
+Level 3 (Branch nodes):   y = 175 + 160 + 40 = 375 (diamond height + gap!)
+Level 4 (Next step):      y = 375 + 50 + 40 = 465
+Level 5 (End):            y = 465 + 50 + 40 = 555
 ```
 
-### Horizontal Spacing
+**Key insight:** Branch nodes (level 3) are positioned 200px below the decision node (175 + 160 + 40 = 375), ensuring proper visual clearance after the tall diamond shape.
 
-- **Sequential flow:** Center-aligned when possible (same x coordinate)
-- **Branches:** 150-350px between parallel paths
-- **Multi-way splits:** Distribute evenly with adequate spacing
+### Horizontal Spacing (Centered Spine)
 
-**Example for 2-branch decision:**
+- `CENTER_X = 300` - Main vertical spine position
+- `BRANCH_OFFSET = 200` - Distance from center to branch nodes
+
+**Positioning rules:**
+
+- **Sequential flow:** Centered at `x = CENTER_X - (nodeWidth / 2)`
+- **2-way branches:** Symmetric at `x = CENTER_X ± BRANCH_OFFSET - (nodeWidth / 2)`
+- **3+ branches:** Evenly distributed around center
+
+**Example for 2-way decision:**
 
 ```text
-Decision:        x = 200 (centered)
-Left branch:     x = 50  (150px left of center)
-Right branch:    x = 400 (200px right of center)
+Decision (diamond 160px): x = 300 - 80 = 220  (visual center: 300)
+Left branch (rect 150px): x = 100 - 75 = 25   (visual center: 100)
+Right branch (rect 150px): x = 500 - 75 = 425 (visual center: 500)
 ```
 
 ---
