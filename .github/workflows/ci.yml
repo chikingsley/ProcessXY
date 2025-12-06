@@ -39,9 +39,9 @@ jobs:
           bun run dev &
           SERVER_PID=$!
 
-          # Wait for server to start
+          # Wait for server to start on port 4321
           echo "Waiting for server to start..."
-          timeout 30 bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 1; done' || exit 1
+          timeout 30 bash -c 'until curl -s http://localhost:4321 > /dev/null; do sleep 1; done' || exit 1
 
           # Run E2E tests
           bun run test:e2e
