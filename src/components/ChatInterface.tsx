@@ -2,8 +2,7 @@ import type { Edge, Node } from "@xyflow/react";
 import { Loader2, Send } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { ProcessEdge, ProcessGraph, ProcessNode } from "../types/process";
 
 /**
@@ -57,6 +56,8 @@ interface ChatInterfaceProps {
 	selectedNodeIds: string[];
 	onGraphUpdate: (nodes: Node[], edges: Edge[]) => void;
 	onStreamComplete?: () => void;
+	onAutoName?: (name: string) => void;
+	currentMapName?: string;
 }
 
 export function ChatInterface({
@@ -65,6 +66,8 @@ export function ChatInterface({
 	selectedNodeIds,
 	onGraphUpdate,
 	onStreamComplete,
+	onAutoName,
+	currentMapName,
 }: ChatInterfaceProps) {
 	const [messages, setMessages] = useState<Message[]>([
 		{
@@ -292,6 +295,35 @@ export function ChatInterface({
 				content: "I've updated the process map based on your description.",
 			};
 			setMessages((prev) => [...prev, assistantMessage]);
+
+			// Auto-name the map if it's still "Untitled" and we have nodes
+			if (
+				onAutoName &&
+				currentMapName === "Untitled" &&
+				(streamedNodes.length > 0 || nodesToMerge.length > 0)
+			) {
+				const allNodes = streamedNodes.length > 0 ? streamedNodes : nodesToMerge;
+				const labels = allNodes
+					.map((n) => String(n.data?.label || ""))
+					.filter((l) => l.length > 0)
+					.slice(0, 5); // Limit to first 5 labels
+
+				if (labels.length > 0) {
+					try {
+						const nameResponse = await fetch("/api/generate-name", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ nodeLabels: labels }),
+						});
+						const nameData = await nameResponse.json();
+						if (nameData.name && nameData.name !== "Untitled Process") {
+							onAutoName(nameData.name);
+						}
+					} catch (e) {
+						console.warn("Failed to auto-name map:", e);
+					}
+				}
+			}
 		} catch (error) {
 			console.error(error);
 			const errorMessage: Message = {
@@ -309,11 +341,11 @@ export function ChatInterface({
 	};
 
 	return (
-		<Card className="h-full flex flex-col rounded-none border-none shadow-none">
-			<CardHeader className="p-4 border-b">
-				<CardTitle className="text-lg">Process Assistant</CardTitle>
-			</CardHeader>
-			<CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+		<div className="h-full flex flex-col">
+			<div className="px-4 py-3 border-b">
+				<h3 className="text-sm font-medium text-muted-foreground">Process Assistant</h3>
+			</div>
+			<div className="flex-1 flex flex-col overflow-hidden">
 				<div className="flex-1 overflow-y-auto p-4 space-y-4">
 					{messages.map((message) => (
 						<div
@@ -362,21 +394,28 @@ export function ChatInterface({
 							</span>
 						</div>
 					)}
-					<form onSubmit={handleSendMessage} className="flex gap-2">
-						<Input
+					<form onSubmit={handleSendMessage} className="flex gap-2 items-end">
+						<Textarea
 							value={inputValue}
 							onChange={(e) => setInputValue(e.target.value)}
-							placeholder="Type a message..."
-							className="flex-1"
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && !e.shiftKey) {
+									e.preventDefault();
+									handleSendMessage(e);
+								}
+							}}
+							placeholder="Describe a process..."
+							className="flex-1 min-h-[60px] max-h-[120px] resize-none"
 							disabled={isLoading}
+							rows={2}
 						/>
-						<Button type="submit" size="icon" disabled={isLoading}>
+						<Button type="submit" size="icon" disabled={isLoading} className="shrink-0">
 							<Send className="h-4 w-4" />
 							<span className="sr-only">Send</span>
 						</Button>
 					</form>
 				</div>
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	);
 }

@@ -118,3 +118,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom sidebar width - wider than default for better chat experience */
+[data-slot="sidebar-wrapper"] {
+  --sidebar-width: 20rem;
+}

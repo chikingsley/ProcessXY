@@ -433,6 +433,48 @@ const server = serve({
 			},
 		},
 
+		"/api/generate-name": {
+			async POST(req) {
+				try {
+					if (!apiKey) {
+						return Response.json(
+							{ error: "Google API Key is missing" },
+							{ status: 500 },
+						);
+					}
+
+					const body = await req.json();
+					const { nodeLabels } = body;
+
+					if (!nodeLabels || nodeLabels.length === 0) {
+						return Response.json(
+							{ name: "Untitled Process" },
+						);
+					}
+
+					// Use a quick model call to generate a concise name
+					const nameModel = genAI.getGenerativeModel({
+						model: "gemini-flash-latest",
+					});
+
+					const prompt = `Generate a very short (2-4 words max) name for a process map that contains these steps: ${nodeLabels.join(", ")}.
+Return ONLY the name, no quotes, no explanation. Examples: "Employee Onboarding", "Bug Triage", "Loan Application"`;
+
+					const result = await nameModel.generateContent(prompt);
+					const name = result.response.text().trim().replace(/['"]/g, "");
+
+					// Ensure name is not too long
+					const finalName = name.length > 40 ? name.substring(0, 40) : name;
+
+					console.log(`📝 Generated map name: ${finalName}`);
+					return Response.json({ name: finalName });
+				} catch (error) {
+					console.error("Error generating name:", error);
+					return Response.json({ name: "Untitled Process" });
+				}
+			},
+		},
+
 		"/api/hello": {
 			async GET(_req) {
 				return Response.json({

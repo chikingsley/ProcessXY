@@ -11,6 +11,14 @@ import { ChatInterface } from "./components/ChatInterface";
 import { DevControlPanel } from "./components/DevControlPanel";
 import { MapsPanel } from "./components/MapsPanel";
 import { ProcessMap } from "./components/ProcessMap";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarHeader,
+	SidebarInset,
+	SidebarProvider,
+	SidebarRail,
+} from "./components/ui/sidebar";
 import { useHistory } from "./hooks/useHistory";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { usePersistence } from "./hooks/usePersistence";
@@ -33,6 +41,8 @@ export function App() {
 	const [fitViewFn, setFitViewFn] = useState<(() => void) | null>(null);
 	const [layoutPresetName, setLayoutPresetName] = useState<string | null>(null);
 	const layoutPresetIndex = useRef(0);
+	// Key to reset ChatInterface when creating a new map
+	const [chatKey, setChatKey] = useState(0);
 
 	// Persistence hook for auto-save and map management
 	const persistence = usePersistence({
@@ -40,6 +50,7 @@ export function App() {
 		onLoad: (map) => {
 			setNodes(map.nodes);
 			setEdges(map.edges);
+			setChatKey((k) => k + 1); // Reset chat when loading a different map
 			setTimeout(() => fitViewFn?.(), 100);
 		},
 	});
@@ -301,8 +312,9 @@ export function App() {
 	// Handler to create a new empty map
 	const handleNewMap = useCallback(() => {
 		persistence.createNewMap();
-		setNodes(initialNodes);
-		setEdges(initialEdges);
+		setNodes([]); // Start with blank canvas
+		setEdges([]);
+		setChatKey((k) => k + 1); // Reset chat interface
 	}, [persistence.createNewMap, setNodes, setEdges]);
 
 	// Handler to manually save
@@ -311,7 +323,7 @@ export function App() {
 	}, [persistence.saveMap, nodes, edges]);
 
 	return (
-		<div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
+		<SidebarProvider defaultOpen={true}>
 			{/* Layout preset indicator */}
 			{layoutPresetName && (
 				<div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-fade-in">
@@ -331,9 +343,8 @@ export function App() {
 				currentNodes={nodes}
 			/>
 
-			<div className="w-[30%] min-w-[300px] max-w-[400px] h-full border-r border-border flex flex-col">
-				{/* Maps Panel Header */}
-				<div className="p-3 border-b border-border bg-muted/30">
+			<Sidebar className="border-r">
+				<SidebarHeader className="border-b px-3 py-2">
 					<MapsPanel
 						currentMapName={persistence.currentMapName}
 						maps={persistence.maps}
@@ -345,9 +356,10 @@ export function App() {
 						onRename={persistence.renameMap}
 						onSaveNow={handleSaveNow}
 					/>
-				</div>
-				<div className="flex-1 overflow-hidden">
+				</SidebarHeader>
+				<SidebarContent className="p-0">
 					<ChatInterface
+						key={chatKey}
 						currentNodes={nodes}
 						currentEdges={edges}
 						selectedNodeIds={selectedNodeIds}
@@ -360,10 +372,14 @@ export function App() {
 								fitViewFn();
 							}
 						}}
+						onAutoName={persistence.renameMap}
+						currentMapName={persistence.currentMapName}
 					/>
-				</div>
-			</div>
-			<div className="flex-1 h-full">
+				</SidebarContent>
+				<SidebarRail />
+			</Sidebar>
+
+			<SidebarInset className="h-screen">
 				<ProcessMap
 					nodes={nodes}
 					edges={edges}
@@ -378,8 +394,8 @@ export function App() {
 					onFitViewReady={(fn) => setFitViewFn(() => fn)}
 					onLoadTestMap={handleLoadTestMap}
 				/>
-			</div>
-		</div>
+			</SidebarInset>
+		</SidebarProvider>
 	);
 }
 
