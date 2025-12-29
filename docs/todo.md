@@ -23,7 +23,7 @@
 ## In Progress
 
 ### Phase 5B: AI SDK Full Integration
-- [ ] Use Output.object() with Zod for structured output (replace NDJSON)
+- [x] Use Output.object() with Zod for structured output (replace NDJSON)
 - [ ] Implement useChat hook (replace manual SSE parsing)
 - [ ] Evaluate AI Elements for chat UI components
 - [ ] Add data flow visualization on edges
