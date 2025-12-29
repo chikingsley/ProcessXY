@@ -272,7 +272,7 @@ const server = serve({
 
 					// Use AI SDK streamText
 					const result = streamText({
-						model: google("gemini-2.5-flash"),
+						model: google("gemini-3-flash-preview"),
 						system: SYSTEM_PROMPT,
 						prompt: message,
 					});
@@ -437,7 +437,7 @@ const server = serve({
 					// Use AI SDK for name generation
 					const { text } = await import("ai").then((m) =>
 						m.generateText({
-							model: google("gemini-2.5-flash"),
+							model: google("gemini-3-flash-preview"),
 							prompt: `Generate a very short (2-4 words max) name for a process map that contains these steps: ${nodeLabels.join(", ")}.
 Return ONLY the name, no quotes, no explanation. Examples: "Employee Onboarding", "Bug Triage", "Loan Application"`,
 						}),
