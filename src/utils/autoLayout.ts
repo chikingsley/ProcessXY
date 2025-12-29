@@ -292,7 +292,8 @@ function layoutSubgraph(
 
 			if (parentInSubgraph.length === 1) {
 				// Single parent - align with parent's X position
-				const parentX = nodePositions.get(parentInSubgraph[0]);
+				const parentId = parentInSubgraph[0]!;
+				const parentX = nodePositions.get(parentId);
 				if (parentX !== undefined && Math.abs(parentX - centerX) > 50) {
 					// Parent is off-center (part of a branch) - align under parent
 					visualCenterX = parentX;

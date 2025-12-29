@@ -17,17 +17,21 @@ const BRANCH_OFFSET = 200;
 const VERTICAL_GAP = 60;
 
 // Node dimensions (MUST match actual CSS sizes!)
-const NODE_WIDTHS: Record<string, number> = {
+const NODE_WIDTHS = {
 	oval: 160,     // OvalNode min-w-[160px]
 	default: 150,  // RectangleNode min-w-[150px]
 	diamond: 160,  // DiamondNode width: 160px
-};
+} as const;
 
-const NODE_HEIGHTS: Record<string, number> = {
+const NODE_HEIGHTS = {
 	oval: 45,      // OvalNode approx height
 	default: 50,   // RectangleNode approx height
 	diamond: 160,  // DiamondNode height: 160px
-};
+} as const;
+
+type NodeType = keyof typeof NODE_WIDTHS;
+const getNodeWidth = (type: string | undefined): number => NODE_WIDTHS[(type || "default") as NodeType] ?? 150;
+const getNodeHeight = (type: string | undefined): number => NODE_HEIGHTS[(type || "default") as NodeType] ?? 50;
 
 // Pre-calculated Y positions based on cumulative heights + gaps
 // Level 0: y = 0
@@ -54,21 +58,21 @@ describe("Layout Math Verification", () => {
 		console.log("");
 
 		const mainFlow = [
-			{ id: "1", type: "oval", label: "Start", level: 0, branch: "center" },
-			{ id: "2", type: "default", label: "Review Application", level: 1, branch: "center" },
-			{ id: "3", type: "diamond", label: "Credit OK?", level: 2, branch: "center" },
-			{ id: "4", type: "default", label: "Request Documents", level: 3, branch: "left" },
-			{ id: "5", type: "default", label: "Approve Application", level: 3, branch: "right" },
-			{ id: "6", type: "default", label: "Send Notification", level: 4, branch: "center" },
-			{ id: "7", type: "oval", label: "End", level: 5, branch: "center" },
+			{ id: "1", type: "oval" as const, label: "Start", level: 0, branch: "center" as const },
+			{ id: "2", type: "default" as const, label: "Review Application", level: 1, branch: "center" as const },
+			{ id: "3", type: "diamond" as const, label: "Credit OK?", level: 2, branch: "center" as const },
+			{ id: "4", type: "default" as const, label: "Request Documents", level: 3, branch: "left" as const },
+			{ id: "5", type: "default" as const, label: "Approve Application", level: 3, branch: "right" as const },
+			{ id: "6", type: "default" as const, label: "Send Notification", level: 4, branch: "center" as const },
+			{ id: "7", type: "oval" as const, label: "End", level: 5, branch: "center" as const },
 		];
 
 		console.log("Node positions should be:");
 		console.log("─".repeat(80));
 
 		for (const node of mainFlow) {
-			const width = NODE_WIDTHS[node.type];
-			const height = NODE_HEIGHTS[node.type];
+			const width = getNodeWidth(node.type);
+			const height = getNodeHeight(node.type);
 			let expectedX: number;
 
 			if (node.branch === "center") {
@@ -79,7 +83,7 @@ describe("Layout Math Verification", () => {
 				expectedX = CENTER_X + BRANCH_OFFSET - width / 2;
 			}
 
-			const expectedY = LEVEL_Y[node.level];
+			const expectedY = LEVEL_Y[node.level] ?? 0;
 			const visualCenterX = expectedX + width / 2;
 
 			console.log(
@@ -110,21 +114,21 @@ describe("Layout Math Verification", () => {
 		// Height-aware positions: Y is based on cumulative heights + gaps
 		// Nodes follow their parent branch (happy path continues on right branch)
 		const expectedPositions: Record<string, { x: number; y: number; visualCenterX: number }> = {
-			"1": { x: 220, y: LEVEL_Y[0], visualCenterX: 300 },   // Start (oval 160, centered): 300-80=220
-			"2": { x: 225, y: LEVEL_Y[1], visualCenterX: 300 },   // Review (rect 150, centered): 300-75=225
-			"3": { x: 220, y: LEVEL_Y[2], visualCenterX: 300 },   // Decision (diamond 160, centered): 300-80=220
-			"4": { x: 25, y: LEVEL_Y[3], visualCenterX: 100 },    // Left branch node (rect 150): 100-75=25
-			"5": { x: 425, y: LEVEL_Y[3], visualCenterX: 500 },   // Right branch node (rect 150): 500-75=425
-			"6": { x: 425, y: LEVEL_Y[4], visualCenterX: 500 },   // Send Notif follows Approve: 500-75=425
-			"7": { x: 420, y: LEVEL_Y[5], visualCenterX: 500 },   // End follows Send Notif: 500-80=420
+			"1": { x: 220, y: LEVEL_Y[0] ?? 0, visualCenterX: 300 },   // Start (oval 160, centered): 300-80=220
+			"2": { x: 225, y: LEVEL_Y[1] ?? 0, visualCenterX: 300 },   // Review (rect 150, centered): 300-75=225
+			"3": { x: 220, y: LEVEL_Y[2] ?? 0, visualCenterX: 300 },   // Decision (diamond 160, centered): 300-80=220
+			"4": { x: 25, y: LEVEL_Y[3] ?? 0, visualCenterX: 100 },    // Left branch node (rect 150): 100-75=25
+			"5": { x: 425, y: LEVEL_Y[3] ?? 0, visualCenterX: 500 },   // Right branch node (rect 150): 500-75=425
+			"6": { x: 425, y: LEVEL_Y[4] ?? 0, visualCenterX: 500 },   // Send Notif follows Approve: 500-75=425
+			"7": { x: 420, y: LEVEL_Y[5] ?? 0, visualCenterX: 500 },   // End follows Send Notif: 500-80=420
 		};
 
 		let allCorrect = true;
 
 		for (const node of mainFlowNodes) {
-			const expected = expectedPositions[node.id];
+			const expected = expectedPositions[node.id]!;
 			const actual = node.position;
-			const nodeWidth = NODE_WIDTHS[node.type || "default"];
+			const nodeWidth = getNodeWidth(node.type);
 			const actualVisualCenter = actual.x + nodeWidth / 2;
 
 			const xMatch = actual.x === expected.x;
@@ -173,9 +177,9 @@ describe("Layout Math Verification", () => {
 		let allCorrect = true;
 
 		for (const node of layoutedNodes) {
-			const nodeWidth = NODE_WIDTHS[node.type || "default"];
+			const nodeWidth = getNodeWidth(node.type);
 			const actualVisualCenter = node.position.x + nodeWidth / 2;
-			const expectedCenter = expectedVisualCenters[node.id];
+			const expectedCenter = expectedVisualCenters[node.id] ?? 300;
 			const isCorrect = Math.abs(actualVisualCenter - expectedCenter) < 1; // Allow 1px tolerance
 
 			if (!isCorrect) allCorrect = false;

@@ -61,10 +61,11 @@ export function App() {
 		// Skip if no nodes (empty graph) or still loading
 		if (nodes.length === 0 || persistence.isLoading) return;
 		// Skip the initial default node
+		const firstNode = nodes[0];
 		if (
 			nodes.length === 1 &&
-			nodes[0].id === "1" &&
-			nodes[0].data.label === "Start Process"
+			firstNode?.id === "1" &&
+			firstNode?.data.label === "Start Process"
 		)
 			return;
 

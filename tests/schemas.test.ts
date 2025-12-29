@@ -298,7 +298,7 @@ describe("Schema Validation - AI Response Simulation", () => {
 		};
 
 		const parsed = graphUpdateSchema.parse(update);
-		expect(parsed.nodes[0].data.status).toBe("bottleneck");
-		expect(parsed.nodes[0].data.color).toBe("#ef4444");
+		expect(parsed.nodes[0]?.data.status).toBe("bottleneck");
+		expect(parsed.nodes[0]?.data.color).toBe("#ef4444");
 	});
 });
