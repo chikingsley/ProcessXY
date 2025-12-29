@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { streamText } from "ai";
 import { serve } from "bun";
 import index from "./index.html";
 import {
@@ -9,7 +10,7 @@ import {
 	getMostRecentMap,
 } from "./db/maps";
 
-// Initialize Gemini AI on the server side only
+// Initialize AI SDK Google provider
 const apiKey = process.env.GOOGLE_API_KEY || "";
 console.log(
 	"🔑 API Key status:",
@@ -24,15 +25,12 @@ console.log(
 if (!apiKey) {
 	console.warn("⚠️  GOOGLE_API_KEY not found in environment variables");
 }
-const genAI = new GoogleGenerativeAI(apiKey);
 
-const model = genAI.getGenerativeModel({
-	model: "gemini-flash-latest",
-	// No JSON constraint - we'll use NDJSON for streaming
+const google = createGoogleGenerativeAI({
+	apiKey,
 });
 
-const SYSTEM_PROMPT = `
-You are an expert process mapping assistant. Your goal is to generate or modify a process map based on the user's description.
+const SYSTEM_PROMPT = `You are an expert process mapping assistant. Your goal is to generate or modify a process map based on the user's description.
 
 OUTPUT FORMAT (NDJSON - Newline Delimited JSON):
 FIRST, output a mode indicator, then nodes, then edges.
@@ -211,6 +209,7 @@ User: "Change everything to green"
 → Set color: "#22c55e" for ALL nodes
 
 EXAMPLE OUTPUT FOR A DECISION FLOW (note the spacing - 200-280px vertical, 300px+ horizontal):
+{"type":"mode","data":"create"}
 {"type":"node","data":{"id":"1","type":"oval","position":{"x":250,"y":0},"data":{"label":"Start"}}}
 {"type":"node","data":{"id":"2","type":"default","position":{"x":250,"y":200},"data":{"label":"Review Application"}}}
 {"type":"node","data":{"id":"3","type":"diamond","position":{"x":200,"y":480},"data":{"label":"Approved?","outputCount":2}}}
@@ -222,8 +221,7 @@ CRITICAL:
 - Always preserve the complete node structure
 - Return valid JSON only
 - If SELECTED NODES are provided, prioritize them for ambiguous references
-- Keep labels under 30 characters
-`;
+- Keep labels under 30 characters`;
 
 const server = serve({
 	port: 4321,
@@ -254,23 +252,7 @@ const server = serve({
 						);
 					}
 
-					const chatSession = model.startChat({
-						history: [
-							{
-								role: "user",
-								parts: [{ text: SYSTEM_PROMPT }],
-							},
-							{
-								role: "model",
-								parts: [
-									{
-										text: "I understand. I will output nodes and edges in NDJSON format for streaming.",
-									},
-								],
-							},
-						],
-					});
-
+					// Build the user message with context
 					let message = `User Request: ${prompt}`;
 
 					// Add selected nodes context if any nodes are selected
@@ -288,10 +270,14 @@ const server = serve({
 						message += `\n\nCurrent Graph Context: ${JSON.stringify(currentGraph)}`;
 					}
 
-					// Use streaming API
-					const result = await chatSession.sendMessageStream(message);
+					// Use AI SDK streamText
+					const result = streamText({
+						model: google("gemini-2.0-flash"),
+						system: SYSTEM_PROMPT,
+						prompt: message,
+					});
 
-					// Create a readable stream for SSE (Server-Sent Events)
+					// Create SSE stream from AI SDK result
 					const stream = new ReadableStream({
 						async start(controller) {
 							const encoder = new TextEncoder();
@@ -303,12 +289,10 @@ const server = serve({
 								let inString = false;
 								let escapeNext = false;
 
-								for await (const chunk of result.stream) {
-									const chunkText = chunk.text();
-
+								for await (const chunk of result.textStream) {
 									// Process only new characters from this chunk
-									for (let i = 0; i < chunkText.length; i++) {
-										const char = chunkText[i];
+									for (let i = 0; i < chunk.length; i++) {
+										const char = chunk[i];
 										currentObject += char;
 
 										// Track string boundaries (ignore braces inside strings)
@@ -447,21 +431,19 @@ const server = serve({
 					const { nodeLabels } = body;
 
 					if (!nodeLabels || nodeLabels.length === 0) {
-						return Response.json(
-							{ name: "Untitled Process" },
-						);
+						return Response.json({ name: "Untitled Process" });
 					}
 
-					// Use a quick model call to generate a concise name
-					const nameModel = genAI.getGenerativeModel({
-						model: "gemini-flash-latest",
-					});
+					// Use AI SDK for name generation
+					const { text } = await import("ai").then((m) =>
+						m.generateText({
+							model: google("gemini-2.0-flash"),
+							prompt: `Generate a very short (2-4 words max) name for a process map that contains these steps: ${nodeLabels.join(", ")}.
+Return ONLY the name, no quotes, no explanation. Examples: "Employee Onboarding", "Bug Triage", "Loan Application"`,
+						}),
+					);
 
-					const prompt = `Generate a very short (2-4 words max) name for a process map that contains these steps: ${nodeLabels.join(", ")}.
-Return ONLY the name, no quotes, no explanation. Examples: "Employee Onboarding", "Bug Triage", "Loan Application"`;
-
-					const result = await nameModel.generateContent(prompt);
-					const name = result.response.text().trim().replace(/['"]/g, "");
+					const name = text.trim().replace(/['"]/g, "");
 
 					// Ensure name is not too long
 					const finalName = name.length > 40 ? name.substring(0, 40) : name;
