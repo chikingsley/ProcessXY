@@ -19,6 +19,7 @@ import { useCallback, useMemo, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import type { NodeStatus, ProcessNode } from "../types/process";
 import { ContextMenu } from "./ContextMenu";
+import { DataFlowEdge } from "./edges/DataFlowEdge";
 import { FloatingEdge } from "./edges/FloatingEdge";
 import { SelfConnectingEdge } from "./edges/SelfConnectingEdge";
 import { DiamondNode } from "./nodes/DiamondNode";
@@ -36,6 +37,7 @@ const edgeTypes = {
 	bezier: BezierEdge, // Alias for compatibility - React Flow v12 doesn't have "bezier" by default
 	floating: FloatingEdge,
 	selfConnecting: SelfConnectingEdge,
+	dataFlow: DataFlowEdge,
 };
 
 interface ProcessMapProps {

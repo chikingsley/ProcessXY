@@ -70,20 +70,30 @@ EDGE STRUCTURE:
   "id": "unique-string",
   "source": "source-node-id",
   "target": "target-node-id",
-  "type": "straight" | "bezier" | "selfConnecting",
+  "type": "straight" | "bezier" | "selfConnecting" | "dataFlow",
   "sourceHandle": "left" | "right" (for diamond outputs),
   "targetHandle": "left" | "right" (for loop-backs),
   "markerEnd": { "type": "arrowclosed" },
   "label": "Yes" | "No" | custom,
   "labelStyle": { "fill": "#color", "fontWeight": 600 },
   "labelShowBg": true,
-  "animated": true (for loops)
+  "animated": true (for loops or data flow),
+  "data": {
+    "dataType": "document" | "form" | "data" | "database" | "message" | "user",
+    "dataLabel": "Application Form" | "Credit Report" | etc
+  }
 }
 
 EDGE RULES:
 - Diamond "No" branch: sourceHandle: "left", label: "No", labelStyle.fill: "#ef4444"
 - Diamond "Yes" branch: sourceHandle: "right", label: "Yes", labelStyle.fill: "#22c55e"
 - Loop-back edges: type: "selfConnecting", animated: true
+
+DATA FLOW EDGES:
+- When user asks about data flowing between steps, use type: "dataFlow"
+- Add data.dataType to show icon: document, form, data, database, message, user
+- Add data.dataLabel to describe what data passes (e.g., "Customer Application", "Credit Score")
+- Example: { "type": "dataFlow", "data": { "dataType": "document", "dataLabel": "Application Form" } }
 
 LAYOUT (centered spine):
 - CENTER_X = 300 (main vertical axis)

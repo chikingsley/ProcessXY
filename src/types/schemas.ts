@@ -49,13 +49,19 @@ export const labelStyleSchema = z.object({
 	fontWeight: z.number().optional(),
 });
 
+// Edge data schema for data flow visualization
+export const edgeDataSchema = z.object({
+	dataType: z.enum(["document", "form", "data", "database", "message", "email", "user", "customer", "package"]).optional(),
+	dataLabel: z.string().optional(),
+});
+
 // Edge schema (matches ProcessEdge)
 export const edgeSchema = z.object({
 	id: z.string(),
 	source: z.string(),
 	target: z.string(),
 	type: z
-		.enum(["default", "bezier", "straight", "step", "smoothstep", "selfConnecting"])
+		.enum(["default", "bezier", "straight", "step", "smoothstep", "selfConnecting", "dataFlow"])
 		.optional(),
 	sourceHandle: z.string().optional(),
 	targetHandle: z.string().optional(),
@@ -64,6 +70,7 @@ export const edgeSchema = z.object({
 	labelStyle: labelStyleSchema.optional(),
 	labelShowBg: z.boolean().optional(),
 	animated: z.boolean().optional(),
+	data: edgeDataSchema.optional(),
 });
 
 // Graph update response schema - what the AI returns

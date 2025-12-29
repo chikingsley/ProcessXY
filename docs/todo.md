@@ -2,12 +2,27 @@
 
 ## Current State
 
-**Version:** 0.5.x (In Development)
-**Status:** AI SDK 6 integrated, all tests passing
+**Version:** 0.6.0 (Phase 5B Complete)
+**Status:** AI SDK 6 fully integrated, data flow visualization, all tests passing
 
 ---
 
 ## Recently Completed
+
+### Phase 5B: AI SDK Full Integration
+- [x] Use Output.object() with Zod for structured output (replace NDJSON)
+- [x] Create custom useGraphStream hook for graph streaming
+  - ✓ Evaluated useChat/useObject: not suitable for graph events (mode/node/edge/remove)
+  - ✓ Custom hook provides fine-grained callbacks for progressive rendering
+- [x] Evaluated AI Elements for chat UI
+  - ✓ Available: Conversation, Message, Prompt Input, Shimmer
+  - ✓ Decision: Optional enhancement - current simple UI works well for process commands
+  - ✓ Can add later via `npx ai-elements@latest add <component>`
+- [x] Add data flow visualization on edges
+  - ✓ Created DataFlowEdge component with data type icons
+  - ✓ Supports dataType: document, form, data, database, message, user
+  - ✓ Shows animated flow particles when animated=true
+  - ✓ Updated schema and system prompt
 
 ### AI SDK Migration (Phase 5)
 - [x] Migrate from @google/generative-ai to AI SDK 6
@@ -17,16 +32,6 @@
 - [x] Fix all TypeScript errors
 - [x] Upgrade all packages to latest versions
 - [x] 49/49 tests passing
-
----
-
-## In Progress
-
-### Phase 5B: AI SDK Full Integration
-- [x] Use Output.object() with Zod for structured output (replace NDJSON)
-- [ ] Implement useChat hook (replace manual SSE parsing)
-- [ ] Evaluate AI Elements for chat UI components
-- [ ] Add data flow visualization on edges
 
 ---
 
@@ -60,6 +65,7 @@
 | `src/components/ChatInterface.tsx` | Streaming consumer, graph updates |
 | `src/components/ProcessMap.tsx` | React Flow wrapper, node/edge types |
 | `src/components/DevControlPanel.tsx` | Dev tools panel with test scenarios |
+| `src/hooks/useGraphStream.ts` | SSE streaming hook with event callbacks |
 | `src/utils/autoLayout.ts` | Height-aware centered-spine layout |
 | `src/types/schemas.ts` | Zod schemas for graph validation |
 | `src/db/maps.ts` | SQLite persistence |
