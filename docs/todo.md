@@ -39,9 +39,8 @@
 
 ### Phase 6: UX Polish
 - [ ] Undo/redo support for patch-based updates
-- [ ] Export to PNG/PDF
 - [ ] Templates for common processes
-- [ ] Keyboard shortcuts for shape changes
+- [ ] Data inspector panel for edges
 
 ### Phase 7: Advanced Features
 - [ ] Node grouping/subprocesses
@@ -54,6 +53,10 @@
 - [ ] Dual-model architecture (fast + slow AI)
 - [ ] Lean/VSM symbols (inventory triangles, kaizen bursts)
 - [ ] Multiple edge types (dashed for message flows)
+
+### Lower Priority
+- [ ] Export to PNG/PDF
+- [ ] Keyboard shortcuts for shape changes
 
 ---
 

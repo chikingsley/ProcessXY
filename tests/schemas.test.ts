@@ -140,6 +140,49 @@ describe("Graph Schemas", () => {
 			const parsed = edgeSchema.parse(edge);
 			expect(parsed.type).toBe("selfConnecting");
 		});
+
+		test("accepts dataFlow edge type with data", () => {
+			const edge = {
+				id: "e-data",
+				source: "1",
+				target: "2",
+				type: "dataFlow",
+				data: {
+					dataType: "document",
+					dataLabel: "Application Form",
+				},
+			};
+			const parsed = edgeSchema.parse(edge);
+			expect(parsed.type).toBe("dataFlow");
+			expect(parsed.data?.dataType).toBe("document");
+			expect(parsed.data?.dataLabel).toBe("Application Form");
+		});
+
+		test("accepts all valid data types", () => {
+			const dataTypes = ["document", "form", "data", "database", "message", "email", "user", "customer", "package"];
+			for (const dataType of dataTypes) {
+				const edge = {
+					id: `e-${dataType}`,
+					source: "1",
+					target: "2",
+					type: "dataFlow",
+					data: { dataType },
+				};
+				const parsed = edgeSchema.parse(edge);
+				expect(parsed.data?.dataType).toBe(dataType);
+			}
+		});
+
+		test("rejects invalid data type", () => {
+			const edge = {
+				id: "e-invalid",
+				source: "1",
+				target: "2",
+				type: "dataFlow",
+				data: { dataType: "invalid" },
+			};
+			expect(() => edgeSchema.parse(edge)).toThrow();
+		});
 	});
 
 	describe("graphUpdateSchema", () => {
