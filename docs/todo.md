@@ -40,6 +40,9 @@
 ### Phase 6: UX Polish
 - [ ] Undo/redo support for patch-based updates
 - [ ] Templates for common processes
+- [ ] Redesign data flow visualization on edges
+  - Current: basic icons/labels on edges
+  - Goal: Supabase-style table view, schema inspector, better visual design
 - [ ] Data inspector panel for edges
 
 ### Phase 7: Advanced Features
